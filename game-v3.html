@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>동작 거리 게임 v3 · 특수체육</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:#0a0a1a;color:#fff;overflow:hidden;}
+#app{display:flex;height:100vh;width:100vw;}
+
+/* 카메라 */
+#cam-wrap{position:relative;flex:1;background:#000;overflow:hidden;}
+#cam-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+#cam-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none;}
+
+/* 거리 게이지 오버레이 (카메라 위) */
+#dist-overlay{
+  position:absolute;bottom:0;left:0;right:0;
+  height:80px;background:rgba(0,0,0,0.55);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+}
+.dist-label{font-size:12px;color:#aaa;white-space:nowrap;}
+#dist-track{
+  flex:1;height:32px;background:#1a1a2e;
+  border-radius:16px;position:relative;overflow:hidden;
+  border:2px solid #333;
+}
+#dist-fill{
+  position:absolute;top:0;bottom:0;
+  background:linear-gradient(90deg,#f093fb,#f5576c);
+  border-radius:14px;transition:left 0.15s ease,width 0.15s ease;
+}
+#dist-marker{
+  position:absolute;top:50%;transform:translate(-50%,-50%);
+  width:28px;height:28px;border-radius:50%;
+  background:#fff;border:3px solid #f5a623;
+  transition:left 0.12s ease;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 12px rgba(245,166,35,0.8);
+  z-index:2;
+}
+.zone-line{
+  position:absolute;top:0;bottom:0;width:3px;
+  background:rgba(255,255,255,0.4);
+}
+.zone-label{
+  position:absolute;bottom:2px;font-size:9px;color:rgba(255,255,255,0.6);
+  transform:translateX(-50%);
+}
+
+/* 스쿼트 게이지 (좌측 세로) */
+#squat-gauge{
+  position:absolute;left:16px;top:50%;transform:translateY(-50%);
+  width:40px;height:220px;
+  background:rgba(0,0,0,0.55);border-radius:20px;
+  border:2px solid #333;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+}
+#squat-fill{
+  width:28px;border-radius:14px;
+  background:linear-gradient(0deg,#1de9b6,#00b894);
+  transition:height 0.12s ease;
+}
+#squat-pct{
+  position:absolute;top:8px;font-size:11px;color:#1de9b6;font-weight:700;
+}
+#squat-label-top{position:absolute;top:30px;font-size:9px;color:#aaa;}
+#squat-label-bot{position:absolute;bottom:8px;font-size:9px;color:#aaa;}
+
+/* 판정 팝업 (카메라 중앙) */
+#cam-verdict{
+  position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);
+  font-size:52px;font-weight:900;
+  text-shadow:0 0 30px currentColor;
+  opacity:0;transition:opacity 0.2s;pointer-events:none;
+}
+
+/* 패널 */
+#panel{
+  width:320px;background:#10102a;
+  display:flex;flex-direction:column;
+  padding:18px;gap:12px;overflow-y:auto;
+}
+.logo{font-size:20px;font-weight:900;color:#f093fb;text-align:center;}
+.logo span{color:#fff;}
+
+/* 미션 카드 */
+#mission-card{
+  background:#1a1a3e;border-radius:14px;padding:16px;text-align:center;
+}
+#mission-icon{font-size:52px;margin-bottom:6px;}
+#mission-name{font-size:22px;font-weight:900;color:#fff;margin-bottom:4px;}
+#mission-desc{font-size:12px;color:#a8d8ea;line-height:1.5;}
+.mission-badge{
+  display:inline-block;margin-top:8px;padding:4px 14px;
+  border-radius:20px;font-size:11px;font-weight:700;
+  background:#f093fb;color:#000;
+}
+
+/* 진행 */
+#prog-box{background:#1a1a3e;border-radius:12px;padding:14px;text-align:center;}
+#prog-num{font-size:46px;font-weight:900;color:#1de9b6;}
+#prog-sub{font-size:12px;color:#aaa;}
+.dots{display:flex;justify-content:center;gap:7px;margin-top:8px;flex-wrap:wrap;}
+.dot{
+  width:26px;height:26px;border-radius:50%;
+  background:#333;font-size:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;transition:all 0.3s;
+}
+.dot.done{background:#1de9b6;color:#000;}
+
+/* 상태 바 */
+.stat-row{display:flex;align-items:center;gap:10px;background:#1a1a3e;border-radius:10px;padding:10px 14px;}
+.stat-icon{font-size:22px;}
+.stat-info{flex:1;}
+.stat-label{font-size:11px;color:#aaa;}
+.stat-val{font-size:16px;font-weight:800;color:#fff;}
+.stat-bar{height:8px;background:#222;border-radius:4px;overflow:hidden;margin-top:4px;}
+.stat-bar-fill{height:100%;border-radius:4px;transition:width 0.15s;}
+
+/* 판정 표시 패널 */
+#verdict-panel{
+  text-align:center;font-size:28px;font-weight:900;
+  height:44px;line-height:44px;border-radius:10px;
+  transition:all 0.3s;
+}
+.vp-pass{background:#1de9b6;color:#000;}
+.vp-fail{background:#e94560;color:#fff;}
+.vp-hold{background:#252545;color:#aaa;}
+.vp-warn{background:#f5a623;color:#000;}
+
+/* 버튼 */
+.btn{padding:11px;border-radius:11px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+#btn-start{background:#f093fb;color:#000;}
+#btn-start:hover{background:#d070d0;}
+#btn-next{background:#1de9b6;color:#000;display:none;}
+#btn-cam{background:#252545;color:#fff;font-size:12px;}
+
+/* 로그 */
+#log-list{max-height:100px;overflow-y:auto;}
+.log-item{font-size:11px;color:#888;padding:3px 0;border-bottom:1px solid #1a1a3e;display:flex;justify-content:space-between;}
+.log-item .ok{color:#1de9b6;} .log-item .ng{color:#e94560;}
+
+/* 성공 오버레이 */
+#success-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,0.88);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  z-index:200;text-align:center;
+}
+#success-ov.show{display:flex;}
+.s-emoji{font-size:80px;animation:bonce 0.6s infinite alternate;}
+@keyframes bonce{from{transform:scale(1)}to{transform:scale(1.2)}}
+.s-title{font-size:38px;font-weight:900;color:#1de9b6;margin:14px 0 6px;}
+.s-sub{font-size:16px;color:#aaa;}
+#btn-again{margin-top:22px;padding:14px 36px;background:#f093fb;color:#000;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;}
+
+/* 로딩 */
+#loading{position:fixed;inset:0;background:#0a0a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:14px;}
+.spin{width:44px;height:44px;border:4px solid #222;border-top:4px solid #f093fb;border-radius:50%;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#load-msg{color:#aaa;font-size:13px;}
+
+/* 토스트 */
+#toast{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:7px 18px;border-radius:18px;font-size:13px;pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:50;}
+#toast.show{opacity:1;}
+
+/* 타이머바 */
+#timer-wrap{background:#222;border-radius:5px;height:7px;overflow:hidden;}
+#timer-bar{height:100%;background:#f093fb;width:100%;transition:width 0.1s linear;}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spin"></div>
+  <div id="load-msg">MediaPipe 로딩 중...</div>
+</div>
+
+<div id="app">
+  <div id="cam-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+
+    <!-- 스쿼트 세로 게이지 -->
+    <div id="squat-gauge">
+      <div id="squat-pct">0%</div>
+      <div id="squat-label-top">서기</div>
+      <div id="squat-label-bot">앉기</div>
+      <div id="squat-fill" style="height:10%;"></div>
+    </div>
+
+    <!-- 거리 가로 게이지 -->
+    <div id="dist-overlay">
+      <span class="dist-label">📏 앞뒤 거리</span>
+      <div id="dist-track">
+        <div class="zone-line" style="left:20%"><span class="zone-label" style="left:0">앞</span></div>
+        <div class="zone-line" style="left:50%"><span class="zone-label" style="left:0">기준</span></div>
+        <div class="zone-line" style="left:80%"><span class="zone-label" style="left:0">뒤</span></div>
+        <div id="dist-fill" style="left:50%;width:0;"></div>
+        <div id="dist-marker" style="left:50%;">🧍</div>
+      </div>
+      <span class="dist-label" id="dist-val">기준점 없음</span>
+    </div>
+
+    <!-- 카메라 중앙 판정 -->
+    <div id="cam-verdict"></div>
+    <div id="toast"></div>
+  </div>
+
+  <div id="panel">
+    <div class="logo">🏃 거리<span>동작</span> v3</div>
+
+    <div id="mission-card">
+      <div id="mission-icon">🧍</div>
+      <div id="mission-name">준비 중</div>
+      <div id="mission-desc">게임 시작 버튼을 눌러주세요</div>
+      <span class="mission-badge" id="mission-badge">대기</span>
+    </div>
+
+    <div id="timer-wrap"><div id="timer-bar"></div></div>
+
+    <div id="verdict-panel" class="vp-hold">대기 중</div>
+
+    <div id="prog-box">
+      <div id="prog-num">0<span style="font-size:20px;color:#aaa">/5</span></div>
+      <div id="prog-sub">성공 횟수</div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <!-- 스쿼트 깊이 -->
+    <div class="stat-row">
+      <div class="stat-icon">🦵</div>
+      <div class="stat-info">
+        <div class="stat-label">스쿼트 깊이</div>
+        <div class="stat-val" id="squat-val">0%</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="squat-bar" style="width:0%;background:#1de9b6;"></div></div>
+      </div>
+    </div>
+
+    <!-- 이동 거리 -->
+    <div class="stat-row">
+      <div class="stat-icon">📏</div>
+      <div class="stat-info">
+        <div class="stat-label">앞뒤 이동 거리</div>
+        <div class="stat-val" id="move-val">기준 미설정</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="move-bar" style="width:50%;background:#f093fb;"></div></div>
+      </div>
+    </div>
+
+    <button class="btn" id="btn-start" onclick="startGame()">🎮 게임 시작</button>
+    <button class="btn" id="btn-next" onclick="nextMission()">➡️ 다음 동작</button>
+    <button class="btn" id="btn-cam" onclick="toggleCam()">📷 카메라 전환</button>
+
+    <div style="font-size:11px;color:#555;font-weight:700;">라운드 기록</div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<div id="success-ov">
+  <div class="s-emoji">🎊</div>
+  <div class="s-title" id="s-title">완벽해요!</div>
+  <div class="s-sub" id="s-sub">모든 동작 성공!</div>
+  <button id="btn-again" onclick="resetGame()">🔄 다시 하기</button>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script>
+// ── 미션 정의 ──────────────────────────────────────────────
+const MISSIONS = [
+  {
+    id:'squat',
+    name:'앉았다 일어나기',
+    icon:'🦵',
+    desc:'무릎을 굽혀 최대한 낮게 앉았다가 다시 일어서세요!',
+    badge:'스쿼트',
+    type:'squat',
+    target:5,
+    passDepth:0.55  // 엉덩이-어깨 비율 임계값
+  },
+  {
+    id:'forward',
+    name:'앞으로 걷기',
+    icon:'🚶',
+    desc:'카메라 쪽으로 두 걸음 이상 앞으로 가까이 오세요!',
+    badge:'앞으로',
+    type:'forward',
+    target:5,
+    passRatio:0.30  // 기준 대비 얼마나 커졌는지
+  },
+  {
+    id:'backward',
+    name:'뒤로 물러서기',
+    icon:'🚶',
+    desc:'카메라에서 멀어지도록 두 걸음 이상 뒤로 물러서세요!',
+    badge:'뒤로',
+    type:'backward',
+    target:5,
+    passRatio:0.30
+  },
+  {
+    id:'squat2',
+    name:'스쿼트 연속 3회',
+    icon:'🏋️',
+    desc:'앉았다 일어나기를 3번 연속으로 해보세요! 리듬을 타세요.',
+    badge:'연속 스쿼트',
+    type:'squat_rep',
+    target:4,
+    passDepth:0.50
+  },
+  {
+    id:'combo',
+    name:'앞뒤 콤보',
+    icon:'🔄',
+    desc:'앞으로 나왔다가 다시 뒤로 돌아가는 콤보 동작!',
+    badge:'앞뒤 콤보',
+    type:'combo',
+    target:4,
+    passRatio:0.25
+  }
+];
+
+// ── 상태 ────────────────────────────────────────────────────
+let poseInst = null, camera = null;
+let landmarks = null;
+let gameRunning = false;
+let missionIdx = 0;
+let successCount = 0;
+let targetCount = 5;
+
+// 기준점 (거리 감지용)
+let refShoulderDist = null;  // 기준 어깨 너비 (픽셀) → 거리 척도
+let calibrated = false;
+
+// 스쿼트 감지
+let sqState = 'up';           // 'up' | 'down'
+let sqDepth = 0;
+let sqRepCount = 0;
+let sqHoldDown = null;
+
+// 거리 감지
+let distState = 'mid';        // 'near' | 'mid' | 'far'
+let distRatio = 0;
+let distPassTriggered = false;
+
+// 콤보
+let comboPhase = 0;           // 0=mid → 1=near → 2=far → pass
+
+let holdTimer = null;
+let roundTimer = null;
+let roundDuration = 20000;
+let roundStart = null;
+
+let confHistory = [];
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ── MediaPipe 초기화 ──────────────────────────────────────
+async function initPose() {
+  document.getElementById('load-msg').textContent = 'MediaPipe Pose 초기화 중...';
+  poseInst = new Pose({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+  });
+  poseInst.setOptions({
+    modelComplexity:1, smoothLandmarks:true,
+    enableSegmentation:false, smoothSegmentation:false,
+    minDetectionConfidence:0.5, minTrackingConfidence:0.5
+  });
+  poseInst.onResults(onResults);
+
+  document.getElementById('load-msg').textContent = '카메라 시작 중...';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'user',width:640,height:480}
+    });
+    video.srcObject = stream;
+    await video.play();
+
+    camera = new Camera(video, {
+      onFrame: async () => {
+        if(video.readyState >= 2) {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 480;
+          await poseInst.send({image:video});
+        }
+      },
+      width:640, height:480
+    });
+    await camera.start();
+    document.getElementById('loading').style.display = 'none';
+    showToast('카메라 준비 완료 ✅ 잠시 기본 자세로 서 주세요');
+    // 3초 후 자동 기준점 보정
+    setTimeout(tryCalibrate, 4000);
+  } catch(e) {
+    document.getElementById('load-msg').textContent = '카메라 오류: ' + e.message;
+  }
+}
+
+// ── 포즈 결과 ──────────────────────────────────────────────
+function onResults(results) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!results.poseLandmarks) { landmarks = null; return; }
+  landmarks = results.poseLandmarks;
+
+  // 스켈레톤
+  drawConnectors(ctx, landmarks, POSE_CONNECTIONS, {color:'rgba(0,230,180,0.5)',lineWidth:2.5});
+  drawLandmarks(ctx, landmarks, {color:'#f093fb', lineWidth:1, radius:3});
+
+  // 기준 어깨 거리 표시
+  drawDistanceGuide(landmarks);
+
+  if (gameRunning) processFrame(landmarks);
+  updateDistUI(landmarks);
+  updateSquatUI(landmarks);
+}
+
+// ── 거리 가이드 오버레이 ──────────────────────────────────
+function drawDistanceGuide(lm) {
+  if (!refShoulderDist) return;
+  const ls = lm[11], rs = lm[12];
+  if (!ls || !rs) return;
+  const curDist = Math.hypot((ls.x-rs.x)*canvas.width, (ls.y-rs.y)*canvas.height);
+  const ratio = (curDist - refShoulderDist) / refShoulderDist;
+  // 앞뒤 방향 표시 화살표
+  const cx = canvas.width/2, cy = canvas.height/2;
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.fillStyle = ratio > 0.15 ? '#1de9b6' : ratio < -0.15 ? '#f093fb' : '#fff';
+  ctx.font = 'bold 32px sans-serif';
+  ctx.textAlign = 'center';
+  if (ratio > 0.15) ctx.fillText('← 앞 →', cx, 50);
+  else if (ratio < -0.15) ctx.fillText('→ 뒤 ←', cx, 50);
+  ctx.restore();
+}
+
+// ── 거리 UI 업데이트 ──────────────────────────────────────
+function updateDistUI(lm) {
+  const ls = lm[11], rs = lm[12];
+  if (!ls || !rs) return;
+  const cur = Math.hypot((ls.x-rs.x)*canvas.width, (ls.y-rs.y)*canvas.height);
+
+  if (refShoulderDist) {
+    distRatio = (cur - refShoulderDist) / refShoulderDist;
+    const pct = Math.min(100, Math.max(0, 50 + distRatio * 150));
+    const marker = document.getElementById('dist-marker');
+    const fill = document.getElementById('dist-fill');
+    marker.style.left = pct + '%';
+    if (distRatio > 0) {
+      fill.style.left = '50%';
+      fill.style.width = Math.min(50, pct-50) + '%';
+      fill.style.background = 'linear-gradient(90deg,#1de9b6,#00b894)';
+    } else {
+      fill.style.left = pct + '%';
+      fill.style.width = (50-pct) + '%';
+      fill.style.background = 'linear-gradient(90deg,#f093fb,#f5576c)';
+    }
+    const cm = Math.round(distRatio * 100);
+    document.getElementById('dist-val').textContent = (cm > 0 ? '+' : '') + cm + '%';
+    document.getElementById('move-val').textContent = (cm > 0 ? '앞 +' : '뒤 ') + Math.abs(cm) + '%';
+    document.getElementById('move-bar').style.width = Math.min(100, Math.abs(distRatio)*300) + '%';
+    document.getElementById('move-bar').style.background = distRatio > 0 ? '#1de9b6' : '#f093fb';
+  } else {
+    document.getElementById('dist-val').textContent = '기준 보정 중...';
+    document.getElementById('move-val').textContent = '보정 중';
+  }
+}
+
+// ── 스쿼트 UI 업데이트 ──────────────────────────────────
+function updateSquatUI(lm) {
+  const lh=lm[23],rh=lm[24],ls=lm[11],rs=lm[12];
+  if(!lh||!rh||!ls||!rs) return;
+  const hipY = (lh.y+rh.y)/2;
+  const shoulderY = (ls.y+rs.y)/2;
+  const bodyHeight = hipY - shoulderY;
+  // 정상 서있을때 hipY~shoulderY 간격 vs 앉았을때
+  sqDepth = Math.min(1, Math.max(0, (hipY - shoulderY - 0.15) / 0.20));
+  const pct = Math.round(sqDepth * 100);
+  document.getElementById('squat-fill').style.height = pct + '%';
+  document.getElementById('squat-pct').textContent = pct + '%';
+  document.getElementById('squat-val').textContent = pct + '%';
+  document.getElementById('squat-bar').style.width = pct + '%';
+}
+
+// ── 기준점 보정 ──────────────────────────────────────────
+function tryCalibrate() {
+  if (!landmarks) { setTimeout(tryCalibrate, 1000); return; }
+  const ls = landmarks[11], rs = landmarks[12];
+  if (!ls || !rs) { setTimeout(tryCalibrate, 1000); return; }
+  refShoulderDist = Math.hypot((ls.x-rs.x)*canvas.width, (ls.y-rs.y)*canvas.height);
+  calibrated = true;
+  showToast('📏 기준점 설정 완료! (' + Math.round(refShoulderDist) + 'px) 게임 시작 가능');
+  document.getElementById('dist-val').textContent = '기준 설정됨';
+}
+
+// ── 프레임 처리 ──────────────────────────────────────────
+function processFrame(lm) {
+  const m = MISSIONS[missionIdx];
+  switch(m.type) {
+    case 'squat': processSquat(lm, m); break;
+    case 'forward': processDist(lm, m, 'forward'); break;
+    case 'backward': processDist(lm, m, 'backward'); break;
+    case 'squat_rep': processSquatRep(lm, m); break;
+    case 'combo': processCombo(lm, m); break;
+  }
+}
+
+// ── 스쿼트 감지 ──────────────────────────────────────────
+function processSquat(lm, m) {
+  if (sqDepth >= m.passDepth) {
+    showVerdict('🔻 잘 앉았어요!', 'pass');
+    if (sqState === 'up') {
+      sqState = 'down';
+    }
+  } else if (sqDepth < 0.2) {
+    if (sqState === 'down') {
+      // 앉았다가 일어남 → 성공 1회
+      sqState = 'up';
+      onOneSuccess('앉았다 일어나기');
+    } else {
+      showVerdict('🦵 무릎을 굽혀보세요', 'fail');
+    }
+  } else {
+    showVerdict('🔽 더 낮게!', 'warn');
+  }
+}
+
+// ── 스쿼트 연속 ──────────────────────────────────────────
+let sqRepState = 'up';
+function processSquatRep(lm, m) {
+  if (sqDepth >= m.passDepth) {
+    if (sqRepState === 'up') {
+      sqRepState = 'down';
+      showVerdict('✅ 앉기 OK', 'pass');
+    }
+  } else if (sqDepth < 0.15) {
+    if (sqRepState === 'down') {
+      sqRepState = 'up';
+      onOneSuccess('스쿼트 1회');
+    }
+  }
+  if (sqRepState === 'up') showVerdict('⬇️ 앉아주세요', 'fail');
+}
+
+// ── 거리 이동 감지 ──────────────────────────────────────
+let prevDistState = 'mid';
+function processDist(lm, m, dir) {
+  if (!refShoulderDist) {
+    showVerdict('📏 기준 설정 중...', 'hold');
+    return;
+  }
+  const threshold = m.passRatio;
+  if (dir === 'forward') {
+    if (distRatio >= threshold) {
+      if (!distPassTriggered) {
+        distPassTriggered = true;
+        showVerdict('✅ 앞으로 충분히!', 'pass');
+        setTimeout(() => { distPassTriggered = false; onOneSuccess('앞으로 이동'); }, 800);
+      }
+    } else {
+      distPassTriggered = false;
+      const pct = Math.round(distRatio / threshold * 100);
+      showVerdict('🚶 앞으로! (' + Math.min(100,Math.max(0,pct)) + '%)', distRatio > 0 ? 'warn' : 'fail');
+    }
+  } else {
+    if (distRatio <= -threshold) {
+      if (!distPassTriggered) {
+        distPassTriggered = true;
+        showVerdict('✅ 뒤로 충분히!', 'pass');
+        setTimeout(() => { distPassTriggered = false; onOneSuccess('뒤로 이동'); }, 800);
+      }
+    } else {
+      distPassTriggered = false;
+      const pct = Math.round(-distRatio / threshold * 100);
+      showVerdict('🚶 뒤로! (' + Math.min(100,Math.max(0,pct)) + '%)', distRatio < 0 ? 'warn' : 'fail');
+    }
+  }
+}
+
+// ── 앞뒤 콤보 ───────────────────────────────────────────
+let comboPassTriggered = false;
+function processCombo(lm, m) {
+  if (!refShoulderDist) return;
+  const th = m.passRatio;
+  if (comboPhase === 0) {
+    showVerdict('🚶 앞으로 나오세요', 'fail');
+    if (distRatio >= th) { comboPhase = 1; showToast('✅ 앞! 이제 뒤로 가세요'); }
+  } else if (comboPhase === 1) {
+    showVerdict('🔙 뒤로 물러서세요', 'warn');
+    if (distRatio <= -th) {
+      comboPhase = 0;
+      showToast('✅ 콤보 완성!');
+      onOneSuccess('앞뒤 콤보');
+    }
+  }
+}
+
+// ── 성공 1회 처리 ────────────────────────────────────────
+function onOneSuccess(label) {
+  if (!gameRunning) return;
+  successCount++;
+  updateProgUI();
+  addLog(label, '✅ 성공');
+  showCamVerdict('✅', '#1de9b6');
+  showToast('잘 했어요! 🎉 (' + successCount + '/' + targetCount + ')');
+
+  if (successCount >= targetCount) {
+    setTimeout(showSuccess, 800);
+  } else {
+    setTimeout(() => { if(gameRunning) startRoundTimer(); }, 1000);
+  }
+}
+
+// ── UI ──────────────────────────────────────────────────
+function updateProgUI() {
+  document.getElementById('prog-num').innerHTML =
+    successCount + '<span style="font-size:20px;color:#aaa">/' + targetCount + '</span>';
+  const dots = document.getElementById('dots');
+  dots.innerHTML = '';
+  for (let i = 1; i <= targetCount; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i <= successCount ? ' done' : '');
+    d.textContent = i <= successCount ? '✅' : i;
+    dots.appendChild(d);
+  }
+}
+
+function showVerdict(msg, type) {
+  const el = document.getElementById('verdict-panel');
+  el.textContent = msg;
+  el.className = 'vp-' + (type === 'hold' ? 'hold' : type === 'pass' ? 'pass' : type === 'warn' ? 'warn' : 'fail');
+}
+
+function showCamVerdict(text, color) {
+  const el = document.getElementById('cam-verdict');
+  el.textContent = text;
+  el.style.color = color;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 1200);
+}
+
+function addLog(name, res) {
+  const t = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const li = document.createElement('div');
+  li.className = 'log-item';
+  const ok = res.includes('성공');
+  li.innerHTML = '<span>' + t + ' ' + name + '</span><span class="' + (ok?'ok':'ng') + '">' + res + '</span>';
+  const list = document.getElementById('log-list');
+  list.insertBefore(li, list.firstChild);
+}
+
+// ── 타이머 ──────────────────────────────────────────────
+function startRoundTimer() {
+  clearInterval(roundTimer);
+  roundStart = Date.now();
+  distPassTriggered = false;
+  comboPhase = 0;
+  sqState = 'up';
+  sqRepState = 'up';
+  roundTimer = setInterval(() => {
+    if (!gameRunning) { clearInterval(roundTimer); return; }
+    const elapsed = Date.now() - roundStart;
+    const rem = Math.max(0, 1 - elapsed / roundDuration);
+    document.getElementById('timer-bar').style.width = (rem * 100) + '%';
+    if (elapsed >= roundDuration) {
+      clearInterval(roundTimer);
+      addLog(MISSIONS[missionIdx].name, '⏰ 시간초과');
+      showVerdict('⏰ 시간 초과', 'fail');
+      setTimeout(() => { if (gameRunning) nextMission(); }, 1200);
+    }
+  }, 100);
+}
+
+// ── 게임 제어 ────────────────────────────────────────────
+function startGame() {
+  if (!calibrated) {
+    showToast('⚠️ 기준점 설정 중입니다. 잠시 기다려 주세요!');
+    tryCalibrate();
+    return;
+  }
+  gameRunning = true;
+  successCount = 0;
+  missionIdx = 0;
+  targetCount = MISSIONS[missionIdx].target;
+  updateProgUI();
+  updateMissionCard();
+  startRoundTimer();
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'block';
+  showToast('게임 시작! 화면의 동작을 따라하세요 💪');
+}
+
+function nextMission() {
+  if (!gameRunning) return;
+  missionIdx = (missionIdx + 1) % MISSIONS.length;
+  successCount = 0;
+  targetCount = MISSIONS[missionIdx].target;
+  updateProgUI();
+  updateMissionCard();
+  startRoundTimer();
+  distPassTriggered = false;
+  comboPhase = 0;
+  showVerdict('동작을 따라하세요!', 'hold');
+}
+
+function updateMissionCard() {
+  const m = MISSIONS[missionIdx];
+  document.getElementById('mission-icon').textContent = m.icon;
+  document.getElementById('mission-name').textContent = m.name;
+  document.getElementById('mission-desc').textContent = m.desc;
+  document.getElementById('mission-badge').textContent = m.badge;
+}
+
+function showSuccess() {
+  gameRunning = false;
+  clearInterval(roundTimer);
+  document.getElementById('s-title').textContent = '🎊 완벽해요!';
+  document.getElementById('s-sub').textContent = MISSIONS[missionIdx].name + ' 목표 달성!';
+  document.getElementById('success-ov').classList.add('show');
+  launchConfetti();
+}
+
+function resetGame() {
+  document.getElementById('success-ov').classList.remove('show');
+  document.getElementById('btn-start').style.display = 'block';
+  document.getElementById('btn-next').style.display = 'none';
+  gameRunning = false;
+  successCount = 0;
+  clearInterval(roundTimer);
+  showVerdict('대기 중', 'hold');
+  document.getElementById('timer-bar').style.width = '100%';
+  document.getElementById('log-list').innerHTML = '';
+  updateProgUI();
+}
+
+// ── 카메라 전환 ──────────────────────────────────────────
+let facingMode = 'user';
+async function toggleCam() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  if (camera) camera.stop();
+  refShoulderDist = null; calibrated = false;
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: {facingMode, width:640, height:480}
+  });
+  video.srcObject = stream;
+  camera = new Camera(video, {
+    onFrame: async () => {
+      if (video.readyState >= 2) {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        await poseInst.send({image:video});
+      }
+    }, width:640, height:480
+  });
+  camera.start();
+  showToast('카메라 전환: ' + (facingMode === 'user' ? '전면' : '후면'));
+  setTimeout(tryCalibrate, 3000);
+}
+
+// ── 토스트 ───────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── 컨페티 ───────────────────────────────────────────────
+function launchConfetti() {
+  const colors = ['#f093fb','#1de9b6','#f5a623','#fff','#a29bfe','#fd79a8'];
+  for (let i = 0; i < 90; i++) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;width:' + (4+Math.random()*7) + 'px;height:' + (4+Math.random()*7) + 'px;background:' + colors[Math.floor(Math.random()*colors.length)] + ';top:-10px;left:' + Math.random()*100 + 'vw;border-radius:50%;z-index:400;pointer-events:none;animation:fall ' + (1.5+Math.random()*2) + 's linear forwards;';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+  }
+  if (!document.getElementById('cst')) {
+    const s = document.createElement('style');
+    s.id = 'cst';
+    s.textContent = '@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}';
+    document.head.appendChild(s);
+  }
+}
+
+window.addEventListener('load', initPose);
+</script>
+</body>
+</html>
