@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>교사 대시보드 · 모양 카운트</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background: #0F0F1A;
+    color: white;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1A1A2E, #16213E);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid #2A2A4A;
+  }
+  .header h1 { font-size: 1.2rem; color: #6C63FF; font-weight: 800; }
+  .header-btns { display: flex; gap: 10px; }
+  .header-btn {
+    background: #6C63FF;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .header-btn.outline {
+    background: transparent;
+    border: 1px solid #444;
+    color: #AAA;
+  }
+
+  /* KPI Bar */
+  .kpi-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: #2A2A4A;
+    border-bottom: 1px solid #2A2A4A;
+  }
+  .kpi-box {
+    background: #1A1A2E;
+    padding: 20px 24px;
+    text-align: center;
+  }
+  .kpi-num {
+    font-size: 2.2rem;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-label { font-size: 0.78rem; color: #666; }
+
+  /* Main Grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 20px;
+  }
+  @media (min-width: 900px) {
+    .main-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 1200px) {
+    .main-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  /* Card */
+  .card {
+    background: #1A1A2E;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid #2A2A4A;
+  }
+  .card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title span { color: #6C63FF; font-size: 0.75rem; }
+
+  /* Add Student */
+  .add-student-form {
+    display: flex; gap: 8px; margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .add-input {
+    flex: 1;
+    background: #0F0F1A;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 0.9rem;
+    min-width: 120px;
+  }
+  .add-input::placeholder { color: #555; }
+  .add-btn {
+    background: #6C63FF;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Student List */
+  .student-list {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 360px; overflow-y: auto;
+  }
+  .student-item {
+    background: #16213E;
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #2A2A4A;
+    transition: border-color 0.2s;
+  }
+  .student-item.active { border-color: #6C63FF; }
+  .student-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6C63FF, #A855F7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: bold; flex-shrink: 0;
+  }
+  .student-info { flex: 1; }
+  .student-name { font-size: 0.95rem; font-weight: 700; }
+  .student-meta { font-size: 0.75rem; color: #666; }
+
+  /* Count Track per student */
+  .student-count-row {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .s-count-display {
+    font-size: 1.4rem; font-weight: 900;
+    color: #6C63FF;
+    min-width: 32px; text-align: center;
+  }
+  .s-count-target { font-size: 0.8rem; color: #555; }
+
+  /* Mini buttons */
+  .mini-btns { display: flex; gap: 4px; flex-shrink: 0; }
+  .mini-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold;
+  }
+  .btn-plus  { background: #6C63FF; color: white; }
+  .btn-minus { background: #333; color: #AAA; }
+  .btn-check { background: #00C853; color: white; }
+  .btn-del   { background: #333; color: #FF5252; font-size: 0.7rem; }
+
+  /* Success badges */
+  .success-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .sbadge {
+    background: #00C853;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: white;
+    font-weight: bold;
+  }
+
+  /* Shape stats chart */
+  .shape-chart { display: flex; flex-direction: column; gap: 8px; }
+  .shape-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .shape-row-icon { font-size: 1.2rem; min-width: 24px; text-align: center; }
+  .shape-row-name { font-size: 0.82rem; color: #AAA; min-width: 50px; }
+  .bar-wrap {
+    flex: 1;
+    background: #0F0F1A;
+    border-radius: 50px;
+    height: 14px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6C63FF, #A855F7);
+    border-radius: 50px;
+    transition: width 0.5s ease;
+  }
+  .bar-num { font-size: 0.78rem; color: #6C63FF; font-weight: bold; min-width: 24px; text-align: right; }
+
+  /* Session Log */
+  .log-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+  .log-item {
+    background: #0F0F1A;
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+  .log-student { color: #DDD; font-weight: 600; }
+  .log-shape { color: #888; }
+  .log-count { color: #6C63FF; font-weight: bold; }
+  .log-success { color: #00C853; font-size: 0.75rem; }
+
+  /* Reset / Export */
+  .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .action-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    min-width: 100px;
+  }
+  .btn-danger { background: #FF5252; color: white; }
+  .btn-secondary { background: #2A2A4A; color: #AAA; }
+  .btn-primary-sm { background: #6C63FF; color: white; }
+
+  /* Empty */
+  .empty-msg { color: #444; text-align: center; padding: 20px; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 교사 대시보드 · 모양 카운트</h1>
+  <div class="header-btns">
+    <a href="game.html" class="header-btn">🎮 게임 열기</a>
+    <a href="index.html" class="header-btn outline">🏠 홈</a>
+  </div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-bar">
+  <div class="kpi-box">
+    <div class="kpi-num" id="kpi-students" style="color:#6C63FF">0</div>
+    <div class="kpi-label">총 학생</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-num" id="kpi-active" style="color:#00C853">0</div>
+    <div class="kpi-label">활동 중</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-num" id="kpi-total-counts" style="color:#FFB300">0</div>
+    <div class="kpi-label">총 카운트</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-num" id="kpi-success" style="color:#FF6B6B">0</div>
+    <div class="kpi-label">성공 라운드</div>
+  </div>
+  <div class="kpi-box">
+    <div class="kpi-num" id="kpi-avg" style="color:#AB47BC">0</div>
+    <div class="kpi-label">평균 카운트</div>
+  </div>
+</div>
+
+<div class="main-grid">
+
+  <!-- Student Management -->
+  <div class="card" style="grid-column: span 1">
+    <div class="card-title">👥 학생 관리 <span id="student-count-badge">0명</span></div>
+    <div class="add-student-form">
+      <input class="add-input" id="studentNameInput" placeholder="학생 이름 입력" maxlength="10">
+      <button class="add-btn" onclick="addStudent()">+ 추가</button>
+      <button class="add-btn" style="background:#16213E; border:1px solid #333;" onclick="addExamples()">예시</button>
+    </div>
+    <div class="student-list" id="studentList">
+      <div class="empty-msg">학생을 추가해주세요</div>
+    </div>
+  </div>
+
+  <!-- Shape Stats -->
+  <div class="card">
+    <div class="card-title">📐 모양별 카운트</div>
+    <div class="shape-chart" id="shapeChart"></div>
+  </div>
+
+  <!-- Session Log -->
+  <div class="card">
+    <div class="card-title">📋 활동 기록</div>
+    <div class="log-list" id="logList">
+      <div class="empty-msg">아직 기록 없음</div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card">
+    <div class="card-title">⚙️ 수업 관리</div>
+    <div style="margin-bottom: 16px;">
+      <div style="font-size:0.82rem; color:#888; margin-bottom:8px;">목표 횟수 설정</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="mini-btn btn-minus" style="width:36px;height:36px" onclick="adjustGlobalTarget(-1)">−</button>
+        <div style="font-size:1.6rem; font-weight:900; color:#6C63FF; min-width:40px; text-align:center" id="globalTarget">5</div>
+        <button class="mini-btn btn-plus" style="width:36px;height:36px" onclick="adjustGlobalTarget(+1)">+</button>
+        <div style="font-size:0.82rem; color:#666">전체 적용</div>
+      </div>
+    </div>
+    <div class="action-btns">
+      <button class="action-btn btn-primary-sm" onclick="markAllActive()">✅ 전원 활동 중</button>
+      <button class="action-btn btn-secondary"  onclick="resetAllCounts()">🔄 카운트 초기화</button>
+    </div>
+    <div style="margin-top:10px">
+      <div class="action-btns">
+        <button class="action-btn btn-secondary" onclick="addLogEntry()">📝 라운드 기록</button>
+        <button class="action-btn btn-danger" onclick="fullReset()">↺ 전체 초기화</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== STATE =====
+const SHAPES_META = [
+  { id: 'circle',   name: '동그라미', emoji: '⭕' },
+  { id: 'triangle', name: '세모',     emoji: '🔺' },
+  { id: 'square',   name: '네모',     emoji: '⬛' },
+  { id: 'star',     name: '별',       emoji: '⭐' },
+  { id: 'cross',    name: '십자',     emoji: '➕' }
+];
+
+let state = {
+  students: [],
+  globalTarget: 5,
+  shapeCounts: { circle:0, triangle:0, square:0, star:0, cross:0 },
+  log: []
+};
+
+let nextId = 1;
+
+// ===== STUDENT =====
+function addStudent(name) {
+  const input = document.getElementById('studentNameInput');
+  const n = name || input.value.trim();
+  if(!n) return;
+  state.students.push({
+    id: nextId++,
+    name: n,
+    active: false,
+    count: 0,
+    target: state.globalTarget,
+    successRounds: 0,
+    successHistory: []
+  });
+  if(!name) input.value = '';
+  renderStudents();
+  updateKPIs();
+}
+
+function addExamples() {
+  ['김민준','이서연','박지호','최아린','정하늘'].forEach(n => addStudent(n));
+}
+
+function removeStudent(id) {
+  state.students = state.students.filter(s => s.id !== id);
+  renderStudents();
+  updateKPIs();
+}
+
+function toggleActive(id) {
+  const s = state.students.find(s => s.id === id);
+  if(s) { s.active = !s.active; renderStudents(); updateKPIs(); }
+}
+
+function incrementCount(id) {
+  const s = state.students.find(s => s.id === id);
+  if(!s) return;
+  s.count++;
+  if(s.count >= s.target) {
+    s.successRounds++;
+    s.successHistory.push({ target: s.target, time: new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) });
+    s.count = 0;
+    // Flash
+    const el = document.querySelector('[data-id="'+id+'"]');
+    if(el) { el.style.borderColor='#00C853'; setTimeout(()=>el.style.borderColor='',1200); }
+  }
+  renderStudents();
+  updateKPIs();
+}
+
+function decrementCount(id) {
+  const s = state.students.find(s => s.id === id);
+  if(s && s.count > 0) { s.count--; renderStudents(); updateKPIs(); }
+}
+
+function markAllActive() {
+  state.students.forEach(s => s.active = true);
+  renderStudents(); updateKPIs();
+}
+
+function resetAllCounts() {
+  state.students.forEach(s => { s.count = 0; });
+  renderStudents(); updateKPIs();
+}
+
+function adjustGlobalTarget(delta) {
+  state.globalTarget = Math.max(1, Math.min(20, state.globalTarget + delta));
+  document.getElementById('globalTarget').textContent = state.globalTarget;
+  state.students.forEach(s => s.target = state.globalTarget);
+  renderStudents();
+}
+
+function renderStudents() {
+  const list = document.getElementById('studentList');
+  if(state.students.length === 0) {
+    list.innerHTML = '<div class="empty-msg">학생을 추가해주세요</div>';
+    document.getElementById('student-count-badge').textContent = '0명';
+    return;
+  }
+  document.getElementById('student-count-badge').textContent = state.students.length + '명';
+
+  list.innerHTML = state.students.map(s => {
+    const pct = s.target > 0 ? Math.min(100, (s.count / s.target) * 100) : 0;
+    const badges = s.successHistory.slice(-3).map(h =>
+      '<span class="sbadge">✅ ' + h.time + '</span>'
+    ).join('');
+    return `
+    <div class="student-item ${s.active?'active':''}" data-id="${s.id}">
+      <div class="student-avatar">${s.name[0]}</div>
+      <div class="student-info">
+        <div class="student-name">${s.name}
+          <span style="font-size:0.72rem;color:${s.active?'#00C853':'#555'};margin-left:6px">${s.active?'활동 중':'미참여'}</span>
+        </div>
+        <div class="student-count-row" style="margin-top:4px">
+          <span class="s-count-display">${s.count}</span>
+          <span class="s-count-target">/ ${s.target}회</span>
+          <span style="font-size:0.75rem;color:#888;margin-left:8px">성공 ${s.successRounds}회</span>
+        </div>
+        <div style="background:#0F0F1A;border-radius:50px;height:8px;margin-top:4px;overflow:hidden">
+          <div style="height:100%;background:linear-gradient(90deg,#6C63FF,#A855F7);border-radius:50px;width:${pct}%;transition:width 0.3s"></div>
+        </div>
+        <div class="success-badges" style="margin-top:4px">${badges}</div>
+      </div>
+      <div class="mini-btns">
+        <button class="mini-btn btn-minus" onclick="decrementCount(${s.id})">−</button>
+        <button class="mini-btn btn-plus"  onclick="incrementCount(${s.id})">+</button>
+        <button class="mini-btn btn-check" onclick="toggleActive(${s.id})" title="활동 중 토글">👤</button>
+        <button class="mini-btn btn-del"   onclick="removeStudent(${s.id})">✕</button>
+      </div>
+    </div>
+    `;
+  }).join('');
+}
+
+// ===== SHAPE CHART =====
+function renderShapeChart() {
+  const chart = document.getElementById('shapeChart');
+  const maxVal = Math.max(1, ...Object.values(state.shapeCounts));
+  chart.innerHTML = SHAPES_META.map(s =>
+    `<div class="shape-row">
+      <span class="shape-row-icon">${s.emoji}</span>
+      <span class="shape-row-name">${s.name}</span>
+      <div class="bar-wrap">
+        <div class="bar-fill" style="width:${(state.shapeCounts[s.id]/maxVal*100)}%"></div>
+      </div>
+      <span class="bar-num">${state.shapeCounts[s.id]}</span>
+    </div>`
+  ).join('');
+}
+
+function addShapeCount(shapeId) {
+  if(state.shapeCounts[shapeId] !== undefined) {
+    state.shapeCounts[shapeId]++;
+    renderShapeChart();
+  }
+}
+
+// ===== LOG =====
+function addLogEntry() {
+  const activeStudents = state.students.filter(s => s.active);
+  if(activeStudents.length === 0) { alert('활동 중인 학생이 없어요!'); return; }
+  const time = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  activeStudents.forEach(s => {
+    state.log.push({
+      student: s.name,
+      count: s.count,
+      target: s.target,
+      success: s.count >= s.target,
+      time
+    });
+    // Update shape count (randomly for demo)
+    const shapes = ['circle','triangle','square','star','cross'];
+    addShapeCount(shapes[Math.floor(Math.random()*shapes.length)]);
+  });
+  renderLog();
+  updateKPIs();
+}
+
+function renderLog() {
+  const list = document.getElementById('logList');
+  if(state.log.length === 0) {
+    list.innerHTML = '<div class="empty-msg">아직 기록 없음</div>';
+    return;
+  }
+  list.innerHTML = state.log.slice().reverse().map(l =>
+    `<div class="log-item">
+      <div>
+        <div class="log-student">${l.student}</div>
+        <div class="log-shape" style="font-size:0.72rem">${l.time}</div>
+      </div>
+      <div class="log-count">${l.count}/${l.target}회</div>
+      <div class="log-success">${l.success ? '✅ 성공' : '🔄 진행중'}</div>
+    </div>`
+  ).join('');
+}
+
+// ===== KPIs =====
+function updateKPIs() {
+  document.getElementById('kpi-students').textContent = state.students.length;
+  document.getElementById('kpi-active').textContent = state.students.filter(s=>s.active).length;
+  const totalCounts = state.students.reduce((a,s)=>a+s.count,0);
+  document.getElementById('kpi-total-counts').textContent = totalCounts;
+  const successTotal = state.students.reduce((a,s)=>a+s.successRounds,0);
+  document.getElementById('kpi-success').textContent = successTotal;
+  const avg = state.students.length > 0 ? Math.round(totalCounts / state.students.length) : 0;
+  document.getElementById('kpi-avg').textContent = avg;
+}
+
+// ===== FULL RESET =====
+function fullReset() {
+  if(!confirm('전체 데이터를 초기화할까요?')) return;
+  state = {
+    students: [],
+    globalTarget: 5,
+    shapeCounts: { circle:0, triangle:0, square:0, star:0, cross:0 },
+    log: []
+  };
+  nextId = 1;
+  document.getElementById('globalTarget').textContent = 5;
+  renderStudents();
+  renderLog();
+  renderShapeChart();
+  updateKPIs();
+}
+
+// ===== INIT =====
+renderStudents();
+renderLog();
+renderShapeChart();
+updateKPIs();
+
+// Enter key for student input
+document.getElementById('studentNameInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') addStudent();
+});
+</script>
+</body>
+</html>
