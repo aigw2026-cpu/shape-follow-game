@@ -6,141 +6,141 @@
 <title>특수체육 모션 게임 포털</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Segoe UI', sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height:100vh; }
-  .hero {
-    text-align:center; padding:60px 20px 30px;
-    color:#fff;
+  body { font-family:'Segoe UI', sans-serif; background:linear-gradient(135deg,#0f0e17 0%,#1a1a3e 50%,#0f0e17 100%); min-height:100vh; }
+  .hero { text-align:center; padding:50px 20px 20px; color:#fff; }
+  .hero h1 { font-size:clamp(26px,4.5vw,44px); font-weight:900; margin-bottom:10px; }
+  .hero h1 span { color:#f093fb; }
+  .hero p { font-size:clamp(13px,1.8vw,17px); opacity:0.8; }
+  .section-title {
+    color:#aaa; font-size:13px; font-weight:700; letter-spacing:2px;
+    padding:20px 40px 10px; max-width:1200px; margin:0 auto; text-transform:uppercase;
   }
-  .hero h1 { font-size:clamp(28px,5vw,48px); font-weight:900; margin-bottom:12px; }
-  .hero p { font-size:clamp(14px,2vw,18px); opacity:0.9; }
   .grid {
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:24px; padding:30px 40px 60px; max-width:1100px; margin:0 auto;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+    gap:20px; padding:10px 40px 50px; max-width:1200px; margin:0 auto;
   }
   .card {
-    background:rgba(255,255,255,0.95); border-radius:20px;
-    overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.2);
-    transition:transform 0.3s; cursor:pointer;
-    text-decoration:none; color:inherit;
-    display:block;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    border-radius:20px; overflow:hidden;
+    box-shadow:0 8px 32px rgba(0,0,0,0.3);
+    transition:transform 0.3s, box-shadow 0.3s; cursor:pointer;
+    text-decoration:none; color:inherit; display:block;
   }
-  .card:hover { transform:translateY(-8px); }
+  .card:hover { transform:translateY(-6px); box-shadow:0 16px 48px rgba(0,0,0,0.5); }
   .card-header {
-    height:140px; display:flex; align-items:center; justify-content:center;
-    font-size:60px; position:relative;
+    height:130px; display:flex; align-items:center; justify-content:center;
+    font-size:56px; position:relative;
   }
   .badge {
-    position:absolute; top:12px; right:12px;
-    padding:4px 10px; border-radius:20px;
-    font-size:11px; font-weight:700;
+    position:absolute; top:10px; right:10px;
+    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:800;
   }
-  .badge-new { background:#e94560; color:#fff; }
+  .badge-v1 { background:rgba(255,255,255,0.2); color:#fff; }
   .badge-v2 { background:#1de9b6; color:#000; }
-  .badge-soon { background:#f5a623; color:#fff; }
-  .card-body { padding:20px; }
-  .card-title { font-size:20px; font-weight:800; margin-bottom:6px; color:#1a1a2e; }
-  .card-desc { font-size:13px; color:#666; line-height:1.6; }
-  .tag-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
-  .tag {
-    padding:3px 10px; border-radius:20px;
-    font-size:11px; font-weight:600;
-  }
-  .tag-blue { background:#e3f2fd; color:#1976d2; }
-  .tag-green { background:#e8f5e9; color:#388e3c; }
-  .tag-purple { background:#f3e5f5; color:#7b1fa2; }
-  .tag-red { background:#fce4ec; color:#c62828; }
+  .badge-v3 { background:#f093fb; color:#000; }
+  .badge-soon { background:#f5a623; color:#000; }
+  .card-body { padding:18px; }
+  .card-title { font-size:18px; font-weight:800; margin-bottom:6px; color:#fff; }
+  .card-desc { font-size:12px; color:#aaa; line-height:1.6; }
+  .tag-list { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }
+  .tag { padding:3px 9px; border-radius:18px; font-size:10px; font-weight:600; }
+  .tg { background:rgba(29,233,182,0.15); color:#1de9b6; }
+  .tp { background:rgba(240,147,251,0.15); color:#f093fb; }
+  .ty { background:rgba(245,166,35,0.15); color:#f5a623; }
+  .tr { background:rgba(233,69,96,0.15); color:#e94560; }
+  .tw { background:rgba(255,255,255,0.1); color:#fff; }
   .card-footer {
-    padding:12px 20px; background:#f5f5f5;
-    font-size:12px; color:#888;
-    display:flex; align-items:center; gap:6px;
+    padding:10px 18px; background:rgba(0,0,0,0.2);
+    font-size:11px; color:#666; display:flex; align-items:center; gap:6px;
   }
-  .dot-live { width:8px; height:8px; border-radius:50%; background:#4caf50; }
-  .dot-soon { width:8px; height:8px; border-radius:50%; background:#f5a623; }
-  .section-title {
-    text-align:center; color:#fff; font-size:20px; font-weight:800;
-    padding:0 40px 16px; max-width:1100px; margin:0 auto;
-    text-align:left; opacity:0.9;
+  .dot-live { width:7px; height:7px; border-radius:50%; background:#4caf50; animation:pulse 1.5s infinite; }
+  .dot-soon { width:7px; height:7px; border-radius:50%; background:#f5a623; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .version-chip {
+    display:inline-block; padding:2px 8px; border-radius:10px;
+    font-size:10px; font-weight:700; margin-right:4px;
   }
+  .vc-v1 { background:rgba(255,255,255,0.15); color:#fff; }
+  .vc-v2 { background:rgba(29,233,182,0.25); color:#1de9b6; }
+  .vc-v3 { background:rgba(240,147,251,0.25); color:#f093fb; }
 </style>
 </head>
 <body>
 <div class="hero">
-  <h1>🏃 특수체육 모션 게임 포털</h1>
-  <p>카메라와 몸으로 즐기는 스마트 체육 학습</p>
+  <h1>🏃 특수체육 <span>모션 게임</span> 포털</h1>
+  <p>AI 카메라로 몸을 인식하는 스마트 체육 학습 플랫폼</p>
 </div>
 
 <div class="section-title">🎮 게임 목록</div>
 <div class="grid">
 
-  <!-- v1: 모양 카운트 -->
+  <!-- v1 -->
   <a class="card" href="game.html">
     <div class="card-header" style="background:linear-gradient(135deg,#667eea,#764ba2)">
-      🔢
-      <span class="badge badge-new">v1</span>
+      🔢<span class="badge badge-v1">v1</span>
     </div>
     <div class="card-body">
-      <div class="card-title">모양 카운트 게임</div>
-      <div class="card-desc">화면의 모양을 보고 버튼을 눌러 카운트! 목표 횟수 달성 시 성공 판정. 터치/클릭 기반의 기초 모션 학습.</div>
+      <div class="card-title"><span class="version-chip vc-v1">v1</span>모양 카운트 게임</div>
+      <div class="card-desc">화면 모양을 보고 버튼을 눌러 카운트! 목표 횟수 달성 시 성공 판정. 터치/클릭 기반 기초 모션 학습.</div>
       <div class="tag-list">
-        <span class="tag tag-blue">버튼 카운트</span>
-        <span class="tag tag-green">성공 체크</span>
-        <span class="tag tag-purple">5가지 모양</span>
+        <span class="tag tw">버튼 카운트</span>
+        <span class="tag tg">성공 체크</span>
+        <span class="tag tp">5가지 모양</span>
       </div>
     </div>
     <div class="card-footer"><div class="dot-live"></div> 라이브 · 바로 시작 가능</div>
   </a>
 
-  <!-- v2: 모션 인식 -->
+  <!-- v2 -->
   <a class="card" href="game-v2.html">
     <div class="card-header" style="background:linear-gradient(135deg,#f093fb,#f5576c)">
-      🤸
-      <span class="badge badge-v2">v2 NEW</span>
+      🤸<span class="badge badge-v2">v2</span>
     </div>
     <div class="card-body">
-      <div class="card-title">📷 카메라 모션 인식 게임</div>
-      <div class="card-desc">
-        <strong>실제 카메라로 팔/몸 동작 인식!</strong><br>
-        MediaPipe AI가 신체 포즈를 실시간 분석해 동작 일치도를 측정합니다. 화면의 동작을 몸으로 따라하면 자동 패스!
-      </div>
+      <div class="card-title"><span class="version-chip vc-v2">v2</span>팔 동작 인식 게임</div>
+      <div class="card-desc">MediaPipe AI가 팔 위치를 실시간 감지! 만세·팔벌리기·한팔 올리기 등 5가지 팔 동작을 따라하면 자동 패스.</div>
       <div class="tag-list">
-        <span class="tag tag-red">AI 포즈 인식</span>
-        <span class="tag tag-blue">실시간 카메라</span>
-        <span class="tag tag-green">패스/실패 판정</span>
-        <span class="tag tag-purple">5가지 팔 동작</span>
+        <span class="tag tr">AI 포즈 인식</span>
+        <span class="tag tg">실시간 카메라</span>
+        <span class="tag tp">5가지 팔 동작</span>
+        <span class="tag ty">패스/실패 판정</span>
       </div>
     </div>
     <div class="card-footer"><div class="dot-live"></div> 라이브 · 카메라 권한 필요</div>
   </a>
 
-  <!-- v3: 리듬 카운트 (예정) -->
-  <div class="card" style="opacity:0.6;cursor:not-allowed;">
-    <div class="card-header" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">
-      🎵
-      <span class="badge badge-soon">준비 중</span>
+  <!-- v3 NEW -->
+  <a class="card" href="game-v3.html">
+    <div class="card-header" style="background:linear-gradient(135deg,#0f0c29,#302b63,#24243e)">
+      🏋️<span class="badge badge-v3">v3 NEW</span>
+    </div>
+    <div class="card-body">
+      <div class="card-title"><span class="version-chip vc-v3">v3</span>거리·스쿼트 동작 게임</div>
+      <div class="card-desc">
+        <strong style="color:#f093fb">완전 새로운 동작 인식!</strong> 앉았다 일어나기(스쿼트)와 앞뒤 이동 거리를 실시간 감지. 어깨 너비로 카메라 거리를 자동 계산해 앞으로/뒤로 이동 패스 판정.
+      </div>
+      <div class="tag-list">
+        <span class="tag tp">스쿼트 감지</span>
+        <span class="tag tg">앞뒤 거리 측정</span>
+        <span class="tag tr">AI 깊이 분석</span>
+        <span class="tag ty">5가지 미션</span>
+        <span class="tag tw">거리 게이지</span>
+      </div>
+    </div>
+    <div class="card-footer"><div class="dot-live"></div> 라이브 · 넓은 공간 권장</div>
+  </a>
+
+  <!-- v4 예정 -->
+  <div class="card" style="opacity:0.45;cursor:not-allowed;pointer-events:none;">
+    <div class="card-header" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">
+      🎵<span class="badge badge-soon">준비 중</span>
     </div>
     <div class="card-body">
       <div class="card-title">리듬 카운트 게임</div>
-      <div class="card-desc">음악 박자에 맞춰 동작을 따라하는 리듬형 체육 게임. 청각 자극과 운동을 결합.</div>
+      <div class="card-desc">음악 박자에 맞춰 동작을 따라하는 리듬형 체육 게임.</div>
       <div class="tag-list">
-        <span class="tag tag-blue">리듬 게임</span>
-        <span class="tag tag-green">음악 연동</span>
-      </div>
-    </div>
-    <div class="card-footer"><div class="dot-soon"></div> 개발 예정</div>
-  </div>
-
-  <!-- v4: 균형 잡기 (예정) -->
-  <div class="card" style="opacity:0.6;cursor:not-allowed;">
-    <div class="card-header" style="background:linear-gradient(135deg,#43e97b,#38f9d7)">
-      🧘
-      <span class="badge badge-soon">준비 중</span>
-    </div>
-    <div class="card-body">
-      <div class="card-title">균형 잡기 게임</div>
-      <div class="card-desc">한 발로 서기, 균형 자세 유지 등 균형감각을 키우는 특수체육 훈련.</div>
-      <div class="tag-list">
-        <span class="tag tag-green">균형 훈련</span>
-        <span class="tag tag-purple">자세 교정</span>
+        <span class="tag tg">리듬 게임</span>
+        <span class="tag ty">음악 연동</span>
       </div>
     </div>
     <div class="card-footer"><div class="dot-soon"></div> 개발 예정</div>
