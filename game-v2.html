@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모션 인식 게임 v2 · 특수체육</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',sans-serif; background:#0f0e17; color:#fff; overflow:hidden; }
+
+  #app { display:flex; height:100vh; width:100vw; position:relative; }
+
+  /* ── 카메라 영역 ── */
+  #cam-wrap {
+    position:relative; flex:1; background:#000;
+  }
+  #cam-wrap video {
+    width:100%; height:100%; object-fit:cover;
+    transform:scaleX(-1);
+  }
+  #cam-wrap canvas {
+    position:absolute; top:0; left:0;
+    width:100%; height:100%;
+    transform:scaleX(-1);
+    pointer-events:none;
+  }
+
+  /* ── 우측 게임 패널 ── */
+  #panel {
+    width:340px; background:#1a1a2e;
+    display:flex; flex-direction:column;
+    padding:20px; gap:16px;
+    overflow-y:auto;
+  }
+
+  .logo { font-size:22px; font-weight:800; color:#e94560; text-align:center; }
+  .logo span { color:#fff; }
+
+  /* 동작 카드 */
+  #pose-card {
+    background:#16213e; border-radius:16px; padding:20px;
+    text-align:center;
+  }
+  #pose-label { font-size:13px; color:#aaa; margin-bottom:8px; }
+  #pose-name { font-size:28px; font-weight:900; color:#fff; margin-bottom:6px; }
+  #pose-desc { font-size:13px; color:#a8d8ea; line-height:1.5; }
+  #pose-icon { font-size:64px; margin:10px 0; }
+
+  /* 신뢰도 바 */
+  .conf-wrap { background:#0d0d1a; border-radius:12px; padding:16px; }
+  .conf-label { font-size:12px; color:#aaa; margin-bottom:8px; display:flex; justify-content:space-between; }
+  .conf-bar { height:16px; background:#222; border-radius:8px; overflow:hidden; }
+  .conf-fill {
+    height:100%; border-radius:8px;
+    background:linear-gradient(90deg,#e94560,#f5a623);
+    transition:width 0.15s ease;
+    width:0%;
+  }
+
+  /* 판정 표시 */
+  #verdict {
+    text-align:center; font-size:36px; font-weight:900;
+    height:50px; line-height:50px;
+    border-radius:12px;
+    transition:all 0.3s;
+  }
+  .verdict-pass { background:#1de9b6; color:#000; }
+  .verdict-fail { background:#e94560; color:#fff; }
+  .verdict-hold { background:#333; color:#aaa; }
+
+  /* 카운트 */
+  #count-box {
+    background:#16213e; border-radius:14px; padding:16px;
+    text-align:center;
+  }
+  #count-num { font-size:52px; font-weight:900; color:#1de9b6; }
+  #count-sub { font-size:13px; color:#aaa; }
+  .dots { display:flex; justify-content:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .dot {
+    width:28px; height:28px; border-radius:50%;
+    background:#333; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; transition:all 0.3s;
+  }
+  .dot.done { background:#1de9b6; color:#000; }
+
+  /* 버튼들 */
+  .btn {
+    padding:12px; border-radius:12px; border:none;
+    font-size:15px; font-weight:700; cursor:pointer;
+    transition:all 0.2s;
+  }
+  #btn-start { background:#e94560; color:#fff; }
+  #btn-start:hover { background:#c73652; }
+  #btn-next { background:#1de9b6; color:#000; display:none; }
+  #btn-next:hover { background:#17c4a0; }
+  #btn-cam { background:#333; color:#fff; font-size:13px; }
+
+  /* 성공 오버레이 */
+  #success-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.85);
+    display:none; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:100; text-align:center;
+  }
+  #success-overlay.show { display:flex; }
+  .success-emoji { font-size:90px; animation:bounce 0.6s infinite alternate; }
+  @keyframes bounce { from{transform:scale(1)} to{transform:scale(1.15)} }
+  .success-title { font-size:42px; font-weight:900; color:#1de9b6; margin:16px 0 8px; }
+  .success-sub { font-size:18px; color:#aaa; }
+  #btn-again {
+    margin-top:24px; padding:16px 40px;
+    background:#e94560; color:#fff;
+    border:none; border-radius:16px;
+    font-size:18px; font-weight:800; cursor:pointer;
+  }
+
+  /* 상태 토스트 */
+  #toast {
+    position:absolute; top:16px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,0.75); color:#fff; padding:8px 20px;
+    border-radius:20px; font-size:14px; pointer-events:none;
+    opacity:0; transition:opacity 0.3s; z-index:50;
+  }
+  #toast.show { opacity:1; }
+
+  /* 타이머 */
+  #timer-bar-wrap { background:#222; border-radius:6px; height:8px; overflow:hidden; }
+  #timer-bar { height:100%; background:#e94560; width:100%; transition:width 0.1s linear; }
+
+  /* 로딩 오버레이 */
+  #loading {
+    position:fixed; inset:0; background:#0f0e17;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    z-index:200; gap:16px;
+  }
+  .spinner {
+    width:48px; height:48px; border:4px solid #333;
+    border-top:4px solid #e94560;
+    border-radius:50%; animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  #load-text { color:#aaa; font-size:14px; }
+
+  /* 라운드 기록 */
+  #log-list { max-height:110px; overflow-y:auto; }
+  .log-item {
+    font-size:12px; color:#aaa; padding:3px 0;
+    border-bottom:1px solid #222;
+    display:flex; justify-content:space-between;
+  }
+  .log-item .pass { color:#1de9b6; }
+  .log-item .fail { color:#e94560; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div id="load-text">MediaPipe 로딩 중...</div>
+</div>
+
+<div id="app">
+  <!-- 카메라 -->
+  <div id="cam-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div id="toast"></div>
+  </div>
+
+  <!-- 패널 -->
+  <div id="panel">
+    <div class="logo">🏃 모션<span>인식</span> v2</div>
+
+    <!-- 현재 동작 -->
+    <div id="pose-card">
+      <div id="pose-label">따라할 동작</div>
+      <div id="pose-icon">🙆</div>
+      <div id="pose-name">준비 중...</div>
+      <div id="pose-desc">게임을 시작하세요</div>
+    </div>
+
+    <!-- 신뢰도 -->
+    <div class="conf-wrap">
+      <div class="conf-label">
+        <span>동작 일치도</span>
+        <span id="conf-pct">0%</span>
+      </div>
+      <div class="conf-bar"><div class="conf-fill" id="conf-fill"></div></div>
+    </div>
+
+    <!-- 타이머 -->
+    <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+
+    <!-- 판정 -->
+    <div id="verdict" class="verdict-hold">대기 중</div>
+
+    <!-- 카운트 -->
+    <div id="count-box">
+      <div id="count-num">0<span style="font-size:22px;color:#aaa">/5</span></div>
+      <div id="count-sub">성공 횟수</div>
+      <div class="dots" id="dots"></div>
+    </div>
+
+    <!-- 버튼 -->
+    <button class="btn" id="btn-start" onclick="startGame()">🎮 게임 시작</button>
+    <button class="btn" id="btn-next" onclick="nextPose()">➡️ 다음 동작</button>
+    <button class="btn" id="btn-cam" onclick="toggleCam()">📷 카메라 전환</button>
+
+    <!-- 라운드 기록 -->
+    <div style="font-size:12px;color:#aaa;font-weight:700;">라운드 기록</div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- 성공 오버레이 -->
+<div id="success-overlay">
+  <div class="success-emoji">🎉</div>
+  <div class="success-title" id="success-title">완벽해요!</div>
+  <div class="success-sub" id="success-sub">목표 달성!</div>
+  <button id="btn-again" onclick="resetGame()">🔄 다시 하기</button>
+</div>
+
+<!-- MediaPipe + TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+<script>
+// ── 동작 정의 ──
+const POSES = [
+  {
+    name:'만세 자세',
+    icon:'🙌',
+    desc:'양팔을 위로 쭉 뻗어 만세!',
+    check(lm){ // 양 손목이 어깨보다 높이
+      const ls=lm[11],rs=lm[12],lw=lm[15],rw=lm[16];
+      if(!ls||!rs||!lw||!rw) return 0;
+      const scoreL = ls.y - lw.y; // 양수면 손목이 어깨보다 위
+      const scoreR = rs.y - rw.y;
+      return Math.max(0, Math.min(1, (scoreL + scoreR)));
+    }
+  },
+  {
+    name:'팔 벌리기',
+    icon:'🤸',
+    desc:'양팔을 옆으로 수평하게 벌리세요',
+    check(lm){
+      const ls=lm[11],rs=lm[12],lw=lm[15],rw=lm[16];
+      if(!ls||!rs||!lw||!rw) return 0;
+      // 양 손목이 어깨와 비슷한 높이, 양쪽으로 펼쳐짐
+      const hDiff = Math.abs(lw.y - ls.y) + Math.abs(rw.y - rs.y);
+      const spread = Math.abs(lw.x - rw.x);
+      const spreadScore = Math.min(1, spread * 1.5);
+      const levelScore = Math.max(0, 1 - hDiff * 4);
+      return (spreadScore * 0.6 + levelScore * 0.4);
+    }
+  },
+  {
+    name:'오른팔 위로',
+    icon:'🤚',
+    desc:'오른팔만 위로 높이 들어올리세요',
+    check(lm){
+      const rs=lm[12],rw=lm[16],ls=lm[11],lw=lm[15];
+      if(!rs||!rw||!ls||!lw) return 0;
+      const rightUp = rs.y - rw.y; // 오른손목이 어깨보다 위
+      const leftDown = lw.y - ls.y; // 왼손목이 어깨보다 아래
+      return Math.max(0, Math.min(1, rightUp * 1.5 + leftDown * 0.5));
+    }
+  },
+  {
+    name:'왼팔 위로',
+    icon:'🖐️',
+    desc:'왼팔만 위로 높이 들어올리세요',
+    check(lm){
+      const ls=lm[11],lw=lm[15],rs=lm[12],rw=lm[16];
+      if(!ls||!lw||!rs||!rw) return 0;
+      const leftUp = ls.y - lw.y;
+      const rightDown = rw.y - rs.y;
+      return Math.max(0, Math.min(1, leftUp * 1.5 + rightDown * 0.5));
+    }
+  },
+  {
+    name:'두 팔 아래',
+    icon:'⬇️',
+    desc:'양팔을 몸 아래로 쭉 내리세요',
+    check(lm){
+      const ls=lm[11],rs=lm[12],lw=lm[15],rw=lm[16];
+      if(!ls||!rs||!lw||!rw) return 0;
+      const downL = lw.y - ls.y;
+      const downR = rw.y - rs.y;
+      return Math.max(0, Math.min(1, (downL + downR) * 1.2));
+    }
+  }
+];
+
+// ── 상태 변수 ──
+let pose = null;
+let camera = null;
+let landmarks = null;
+let gameRunning = false;
+let currentPoseIdx = 0;
+let successCount = 0;
+let targetCount = 5;
+let holdTimer = 0;
+let holdRequired = 1500; // ms 유지 필요
+let holdStart = null;
+let lastVerdict = null;
+let roundTimer = null;
+let roundDuration = 15000;
+let roundStart = null;
+let videoElement = document.getElementById('video');
+let canvasElement = document.getElementById('canvas');
+let ctx = canvasElement.getContext('2d');
+
+// ── MediaPipe 초기화 ──
+async function initPose() {
+  document.getElementById('load-text').textContent = 'MediaPipe Pose 초기화 중...';
+  pose = new Pose({
+    locateFile:(f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`
+  });
+  pose.setOptions({
+    modelComplexity:1,
+    smoothLandmarks:true,
+    enableSegmentation:false,
+    smoothSegmentation:false,
+    minDetectionConfidence:0.5,
+    minTrackingConfidence:0.5
+  });
+  pose.onResults(onResults);
+
+  document.getElementById('load-text').textContent = '카메라 시작 중...';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:480}});
+    videoElement.srcObject = stream;
+    await videoElement.play();
+
+    camera = new Camera(videoElement, {
+      onFrame: async () => {
+        if(videoElement.readyState >= 2) {
+          canvasElement.width = videoElement.videoWidth || 640;
+          canvasElement.height = videoElement.videoHeight || 480;
+          await pose.send({image:videoElement});
+        }
+      },
+      width:640, height:480
+    });
+    await camera.start();
+    document.getElementById('loading').style.display='none';
+    showToast('카메라 준비 완료 ✅');
+  } catch(e) {
+    document.getElementById('load-text').textContent = '카메라 오류: '+e.message;
+    console.error(e);
+  }
+}
+
+// ── Pose 결과 처리 ──
+function onResults(results) {
+  ctx.clearRect(0,0,canvasElement.width,canvasElement.height);
+
+  if(results.poseLandmarks) {
+    landmarks = results.poseLandmarks;
+    // 스켈레톤 그리기
+    drawConnectors(ctx, results.poseLandmarks, POSE_CONNECTIONS, {color:'rgba(0,255,150,0.6)',lineWidth:3});
+    drawLandmarks(ctx, results.poseLandmarks, {color:'#e94560', lineWidth:1, radius:4});
+
+    if(gameRunning) evaluatePose(landmarks);
+  } else {
+    landmarks = null;
+  }
+}
+
+// ── 동작 평가 ──
+let confHistory = [];
+function evaluatePose(lm) {
+  const pDef = POSES[currentPoseIdx];
+  const raw = pDef.check(lm);
+  confHistory.push(raw);
+  if(confHistory.length > 5) confHistory.shift();
+  const conf = confHistory.reduce((a,b)=>a+b,0)/confHistory.length;
+
+  // UI 업데이트
+  const pct = Math.round(conf*100);
+  document.getElementById('conf-pct').textContent = pct+'%';
+  document.getElementById('conf-fill').style.width = pct+'%';
+
+  const isMatch = conf >= 0.55;
+
+  if(isMatch) {
+    if(!holdStart) holdStart = Date.now();
+    const held = Date.now() - holdStart;
+    const progress = Math.min(1, held/holdRequired);
+    // 색이 점점 진해짐
+    document.getElementById('conf-fill').style.background =
+      `linear-gradient(90deg, #1de9b6 ${progress*100}%, #00b894 100%)`;
+
+    if(held >= holdRequired && lastVerdict !== 'pass') {
+      lastVerdict = 'pass';
+      onSuccess();
+    } else {
+      showVerdict('유지 중... '+(Math.round(progress*10)/10)+'s', 'hold');
+    }
+  } else {
+    holdStart = null;
+    lastVerdict = null;
+    document.getElementById('conf-fill').style.background =
+      'linear-gradient(90deg,#e94560,#f5a623)';
+    if(conf > 0.3) {
+      showVerdict('조금 더!', 'hold');
+    } else {
+      showVerdict('동작을 취해주세요', 'fail');
+    }
+  }
+}
+
+function showVerdict(msg, type) {
+  const el = document.getElementById('verdict');
+  el.textContent = msg;
+  el.className = 'verdict-'+type;
+}
+
+function onSuccess() {
+  successCount++;
+  updateCountUI();
+  addLog(POSES[currentPoseIdx].name, '✅ 성공');
+  showVerdict('✅ 패스!', 'pass');
+  showToast('잘 했어요! 🎉');
+  holdStart = null;
+  lastVerdict = 'pass';
+
+  if(successCount >= targetCount) {
+    setTimeout(showSuccess, 800);
+    return;
+  }
+  // 1.5초 후 다음 동작
+  setTimeout(()=>{
+    if(gameRunning) nextPose();
+  }, 1500);
+}
+
+function updateCountUI() {
+  document.getElementById('count-num').innerHTML =
+    successCount+'<span style="font-size:22px;color:#aaa">/'+targetCount+'</span>';
+  const dots = document.getElementById('dots');
+  dots.innerHTML='';
+  for(let i=1;i<=targetCount;i++){
+    const d=document.createElement('div');
+    d.className='dot'+(i<=successCount?' done':'');
+    d.textContent = i<=successCount?'✅':i;
+    dots.appendChild(d);
+  }
+}
+
+// ── 타이머 ──
+function startRoundTimer() {
+  clearInterval(roundTimer);
+  roundStart = Date.now();
+  roundTimer = setInterval(()=>{
+    if(!gameRunning){clearInterval(roundTimer);return;}
+    const elapsed = Date.now()-roundStart;
+    const rem = Math.max(0, 1-(elapsed/roundDuration));
+    document.getElementById('timer-bar').style.width = (rem*100)+'%';
+    if(elapsed >= roundDuration) {
+      clearInterval(roundTimer);
+      addLog(POSES[currentPoseIdx].name,'⏰ 시간초과');
+      showVerdict('⏰ 시간 초과', 'fail');
+      setTimeout(()=>{ if(gameRunning) nextPose(); }, 1200);
+    }
+  },100);
+}
+
+// ── 게임 제어 ──
+function startGame() {
+  gameRunning = true;
+  successCount = 0;
+  currentPoseIdx = Math.floor(Math.random()*POSES.length);
+  confHistory = [];
+  holdStart = null;
+  lastVerdict = null;
+  updateCountUI();
+  updatePoseCard();
+  startRoundTimer();
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-next').style.display='block';
+  showToast('게임 시작! 화면의 동작을 따라하세요 💪');
+}
+
+function nextPose() {
+  if(!gameRunning) return;
+  confHistory = [];
+  holdStart = null;
+  lastVerdict = null;
+  currentPoseIdx = Math.floor(Math.random()*POSES.length);
+  updatePoseCard();
+  startRoundTimer();
+  showVerdict('동작을 취해주세요', 'fail');
+}
+
+function updatePoseCard() {
+  const p = POSES[currentPoseIdx];
+  document.getElementById('pose-icon').textContent = p.icon;
+  document.getElementById('pose-name').textContent = p.name;
+  document.getElementById('pose-desc').textContent = p.desc;
+}
+
+function showSuccess() {
+  gameRunning = false;
+  clearInterval(roundTimer);
+  const overlay = document.getElementById('success-overlay');
+  document.getElementById('success-title').textContent = '🎊 완벽해요!';
+  document.getElementById('success-sub').textContent =
+    targetCount+'가지 동작 모두 성공! 대단해요!';
+  overlay.classList.add('show');
+  launchConfetti();
+}
+
+function resetGame() {
+  document.getElementById('success-overlay').classList.remove('show');
+  document.getElementById('btn-start').style.display='block';
+  document.getElementById('btn-next').style.display='none';
+  gameRunning = false;
+  successCount = 0;
+  updateCountUI();
+  showVerdict('대기 중','hold');
+  document.getElementById('conf-fill').style.width='0%';
+  document.getElementById('conf-pct').textContent='0%';
+  document.getElementById('timer-bar').style.width='100%';
+  document.getElementById('log-list').innerHTML='';
+  clearInterval(roundTimer);
+}
+
+// ── 로그 ──
+function addLog(poseName, result) {
+  const now = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const li = document.createElement('div');
+  li.className='log-item';
+  const isPass = result.includes('성공');
+  li.innerHTML = `<span>${now} ${poseName}</span><span class="${isPass?'pass':'fail'}">${result}</span>`;
+  const list = document.getElementById('log-list');
+  list.insertBefore(li, list.firstChild);
+}
+
+// ── 카메라 전환 ──
+let facingMode = 'user';
+async function toggleCam() {
+  facingMode = facingMode==='user'?'environment':'user';
+  if(camera) { camera.stop(); }
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video:{facingMode, width:640, height:480}
+  });
+  videoElement.srcObject = stream;
+  camera = new Camera(videoElement,{
+    onFrame:async()=>{
+      if(videoElement.readyState>=2){
+        canvasElement.width=videoElement.videoWidth||640;
+        canvasElement.height=videoElement.videoHeight||480;
+        await pose.send({image:videoElement});
+      }
+    },width:640,height:480
+  });
+  camera.start();
+  showToast('카메라 전환: '+(facingMode==='user'?'전면':'후면'));
+}
+
+// ── 토스트 ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── 컨페티 ──
+function launchConfetti() {
+  const colors=['#e94560','#1de9b6','#f5a623','#fff','#a29bfe'];
+  for(let i=0;i<80;i++){
+    const d=document.createElement('div');
+    d.style.cssText=`
+      position:fixed; width:${4+Math.random()*6}px; height:${4+Math.random()*6}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      top:-10px; left:${Math.random()*100}vw;
+      border-radius:50%; z-index:300; pointer-events:none;
+      animation:fall ${1.5+Math.random()*2}s linear forwards;
+    `;
+    document.body.appendChild(d);
+    setTimeout(()=>d.remove(),4000);
+  }
+  if(!document.querySelector('#confetti-style')){
+    const s=document.createElement('style');
+    s.id='confetti-style';
+    s.textContent='@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}';
+    document.head.appendChild(s);
+  }
+}
+
+// ── 시작 ──
+window.addEventListener('load', initPose);
+</script>
+</body>
+</html>
