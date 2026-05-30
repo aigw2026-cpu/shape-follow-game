@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모양 카운트 게임 · 특수체육</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --primary: #6C63FF;
+    --success: #00C853;
+    --danger: #FF5252;
+    --warn: #FFB300;
+    --bg: #F0F0FF;
+  }
+  body {
+    font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* === HEADER === */
+  .top-bar {
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .top-bar h1 { font-size: 1.1rem; font-weight: 800; }
+  .top-bar .home-btn {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  /* === MAIN LAYOUT === */
+  .main-layout {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    flex-direction: column;
+  }
+  @media (min-width: 768px) {
+    .main-layout { flex-direction: row; }
+  }
+
+  /* === STUDENT PANEL (left) === */
+  .student-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 20px;
+    gap: 20px;
+    background: white;
+  }
+
+  /* Shape Display */
+  .shape-display {
+    width: 220px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 28px;
+    background: #F8F8FF;
+    border: 3px solid #E0E0FF;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .shape-display.pulse {
+    animation: pulse 0.4s ease;
+  }
+  @keyframes pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  .shape-svg {
+    width: 160px;
+    height: 160px;
+    transition: all 0.3s;
+  }
+  .shape-name {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary);
+    text-align: center;
+  }
+  .shape-instruction {
+    font-size: 1rem;
+    color: #666;
+    text-align: center;
+    max-width: 260px;
+    line-height: 1.6;
+  }
+
+  /* Count Display */
+  .count-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .count-label { font-size: 0.9rem; color: #888; font-weight: 600; }
+  .count-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #F8F8FF;
+    border-radius: 20px;
+    padding: 16px 28px;
+    width: 100%;
+    justify-content: center;
+    border: 2px solid #E0E0FF;
+  }
+  .count-num {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--primary);
+    min-width: 80px;
+    text-align: center;
+    line-height: 1;
+    transition: all 0.2s;
+  }
+  .count-num.bump {
+    animation: bump 0.3s ease;
+  }
+  @keyframes bump {
+    0%   { transform: scale(1); color: var(--primary); }
+    50%  { transform: scale(1.3); color: var(--success); }
+    100% { transform: scale(1); color: var(--primary); }
+  }
+  .count-divider { font-size: 2rem; color: #BBB; font-weight: 300; }
+  .count-target {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #BBB;
+    min-width: 60px;
+    text-align: center;
+    line-height: 1;
+  }
+
+  /* Progress Bar */
+  .progress-wrap {
+    width: 100%;
+    max-width: 320px;
+    background: #E8E8FF;
+    border-radius: 50px;
+    height: 18px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), #A855F7);
+    border-radius: 50px;
+    transition: width 0.4s ease;
+    min-width: 0;
+  }
+
+  /* Success Overlay */
+  .success-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,200,83,0.15);
+    z-index: 100;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .success-overlay.show { display: flex; }
+  .success-card {
+    background: white;
+    border-radius: 28px;
+    padding: 44px 48px;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0,200,83,0.25);
+    border: 3px solid var(--success);
+    animation: popIn 0.4s ease;
+    max-width: 380px;
+    width: 90%;
+  }
+  @keyframes popIn {
+    0%   { transform: scale(0.7); opacity: 0; }
+    80%  { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .success-icon { font-size: 5rem; margin-bottom: 12px; }
+  .success-title { font-size: 2.2rem; font-weight: 900; color: var(--success); margin-bottom: 8px; }
+  .success-count { font-size: 1rem; color: #666; margin-bottom: 24px; }
+  .success-next-btn {
+    background: linear-gradient(135deg, var(--success), #00E676);
+    color: white; border: none;
+    padding: 16px 36px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,200,83,0.35);
+    margin-right: 10px;
+  }
+  .success-again-btn {
+    background: var(--primary);
+    color: white; border: none;
+    padding: 16px 28px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(108,99,255,0.3);
+  }
+
+  /* Confetti */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Done Button (student) */
+  .done-btn {
+    background: linear-gradient(135deg, var(--primary), #A855F7);
+    color: white; border: none;
+    padding: 20px 48px;
+    border-radius: 50px;
+    font-size: 1.4rem;
+    font-weight: 900;
+    cursor: pointer;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 6px 20px rgba(108,99,255,0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .done-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(108,99,255,0.3); }
+  .done-btn:disabled {
+    background: #CCC;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .status-text {
+    font-size: 0.95rem;
+    color: #888;
+    text-align: center;
+    min-height: 24px;
+  }
+
+  /* Check History */
+  .check-history {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    max-width: 320px;
+  }
+  .check-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    background: #E8E8FF;
+    transition: all 0.2s;
+  }
+  .check-dot.done { background: var(--success); }
+  .check-dot.empty { background: #EEE; }
+
+  /* === TEACHER PANEL (right) === */
+  .teacher-panel {
+    width: 100%;
+    background: #1A1A2E;
+    color: white;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .teacher-panel { width: 300px; }
+  }
+  .teacher-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .teacher-section {
+    background: #16213E;
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .teacher-section h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #AAA;
+    margin-bottom: 12px;
+  }
+
+  /* Shape Selector */
+  .shape-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+  .shape-btn {
+    background: #0F3460;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+    text-align: center;
+    color: white;
+    font-size: 0.65rem;
+    transition: all 0.15s;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .shape-btn:hover { background: #6C63FF; }
+  .shape-btn.active { border-color: #6C63FF; background: #6C63FF; }
+  .shape-btn svg { width: 28px; height: 28px; }
+
+  /* Target Count Setter */
+  .count-setter {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .count-setter label { font-size: 0.85rem; color: #AAA; flex: 1; }
+  .count-minus, .count-plus {
+    width: 36px; height: 36px;
+    background: #0F3460;
+    border: none; color: white;
+    border-radius: 8px;
+    font-size: 1.2rem; font-weight: bold;
+    cursor: pointer;
+  }
+  .count-minus:hover, .count-plus:hover { background: #6C63FF; }
+  .count-value {
+    font-size: 1.4rem; font-weight: 900;
+    color: white;
+    min-width: 36px; text-align: center;
+  }
+
+  /* Stats */
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-box {
+    background: #0F3460;
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 2rem; font-weight: 900;
+    color: #6C63FF;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 0.72rem; color: #888; }
+
+  /* Session History */
+  .session-list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 140px; overflow-y: auto;
+  }
+  .session-item {
+    background: #0F3460;
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem;
+    align-items: center;
+  }
+  .session-item .s-name { color: #DDD; }
+  .session-item .s-count { color: #6C63FF; font-weight: bold; }
+  .session-item .s-check { color: var(--success); }
+
+  /* Control Buttons */
+  .ctrl-btns { display: flex; flex-direction: column; gap: 8px; }
+  .ctrl-btn {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .ctrl-btn:hover { opacity: 0.85; }
+  .btn-start { background: var(--success); color: white; }
+  .btn-reset { background: #FF5252; color: white; }
+  .btn-next  { background: #6C63FF;  color: white; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>⬡ 모양 카운트 게임</h1>
+  <a href="index.html" class="home-btn">🏠 홈</a>
+</div>
+
+<!-- Confetti -->
+<div class="confetti-container" id="confettiContainer"></div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-card">
+    <div class="success-icon">🎉</div>
+    <div class="success-title">성공!</div>
+    <div class="success-count" id="successMsg"></div>
+    <button class="success-next-btn" onclick="nextShape()">다음 모양 →</button>
+    <button class="success-again-btn" onclick="resetCurrent()">다시 ↺</button>
+  </div>
+</div>
+
+<div class="main-layout">
+
+  <!-- ===== STUDENT PANEL ===== -->
+  <div class="student-panel">
+
+    <div class="shape-display" id="shapeDisplay">
+      <svg class="shape-svg" id="shapeSvg" viewBox="0 0 160 160"></svg>
+    </div>
+
+    <div class="shape-name" id="shapeName">준비 중...</div>
+    <div class="shape-instruction" id="shapeInstruction">선생님이 시작 버튼을 눌러요</div>
+
+    <!-- Count Display -->
+    <div class="count-section">
+      <div class="count-label">성공 카운트</div>
+      <div class="count-display">
+        <div class="count-num" id="countNum">0</div>
+        <div class="count-divider">/</div>
+        <div class="count-target" id="countTarget">5</div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Check Dots -->
+    <div class="check-history" id="checkHistory"></div>
+
+    <!-- Done Button -->
+    <button class="done-btn" id="doneBtn" onclick="doCount()" disabled>
+      ✅ 따라 했어요!
+    </button>
+    <div class="status-text" id="statusText">선생님이 모양을 선택해요</div>
+
+  </div>
+
+  <!-- ===== TEACHER PANEL ===== -->
+  <div class="teacher-panel">
+    <div class="teacher-title">🎓 선생님 패널</div>
+
+    <!-- Shape Selector -->
+    <div class="teacher-section">
+      <h3>📐 모양 선택</h3>
+      <div class="shape-grid" id="shapeGrid"></div>
+    </div>
+
+    <!-- Target Count -->
+    <div class="teacher-section">
+      <h3>🎯 목표 횟수</h3>
+      <div class="count-setter">
+        <label>목표 카운트</label>
+        <button class="count-minus" onclick="adjustTarget(-1)">−</button>
+        <div class="count-value" id="targetVal">5</div>
+        <button class="count-plus"  onclick="adjustTarget(+1)">+</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="teacher-section">
+      <h3>📊 수업 현황</h3>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-num" id="totalCount">0</div>
+          <div class="stat-label">총 카운트</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="successRounds" style="color:#00C853">0</div>
+          <div class="stat-label">성공 라운드</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="currentShape" style="color:#FFB300">—</div>
+          <div class="stat-label">현재 모양</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num" id="sessionTime">0:00</div>
+          <div class="stat-label">수업 시간</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session History -->
+    <div class="teacher-section">
+      <h3>📋 라운드 기록</h3>
+      <div class="session-list" id="sessionList">
+        <div style="color:#666; font-size:0.8rem; text-align:center; padding:10px">아직 기록 없음</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="teacher-section">
+      <h3>⚙️ 조작</h3>
+      <div class="ctrl-btns">
+        <button class="ctrl-btn btn-start" onclick="startGame()">▶ 게임 시작</button>
+        <button class="ctrl-btn btn-next"  onclick="nextShape()">⏭ 다음 모양</button>
+        <button class="ctrl-btn btn-reset" onclick="fullReset()">↺ 전체 초기화</button>
+        <a href="dashboard.html" class="ctrl-btn" style="background:#444; color:white; text-decoration:none; text-align:center">📊 대시보드 열기</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== SHAPE DEFINITIONS =====
+const SHAPES = [
+  {
+    id: 'circle',
+    name: '동그라미',
+    emoji: '⭕',
+    color: '#FF6B6B',
+    instruction: '양팔을 둥글게 모아요!',
+    draw: (svg) => {
+      svg.innerHTML = '<circle cx="80" cy="80" r="62" fill="none" stroke="#FF6B6B" stroke-width="14"/>';
+    }
+  },
+  {
+    id: 'triangle',
+    name: '세모',
+    emoji: '🔺',
+    color: '#FFB300',
+    instruction: '양손을 머리 위에서 모아요!',
+    draw: (svg) => {
+      svg.innerHTML = '<polygon points="80,12 150,148 10,148" fill="none" stroke="#FFB300" stroke-width="12" stroke-linejoin="round"/>';
+    }
+  },
+  {
+    id: 'square',
+    name: '네모',
+    emoji: '⬛',
+    color: '#4FC3F7',
+    instruction: '두 팔을 ㄱ자로 만들어요!',
+    draw: (svg) => {
+      svg.innerHTML = '<rect x="16" y="16" width="128" height="128" rx="8" fill="none" stroke="#4FC3F7" stroke-width="12"/>';
+    }
+  },
+  {
+    id: 'star',
+    name: '별',
+    emoji: '⭐',
+    color: '#AB47BC',
+    instruction: '팔다리를 쫙 펴요!',
+    draw: (svg) => {
+      const pts = [];
+      for(let i=0;i<10;i++){
+        const r = i%2===0?70:30;
+        const a = (i*36-90)*Math.PI/180;
+        pts.push((80+r*Math.cos(a)).toFixed(1)+','+(80+r*Math.sin(a)).toFixed(1));
+      }
+      svg.innerHTML = '<polygon points="'+pts.join(' ')+'" fill="none" stroke="#AB47BC" stroke-width="10" stroke-linejoin="round"/>';
+    }
+  },
+  {
+    id: 'cross',
+    name: '십자',
+    emoji: '➕',
+    color: '#26A69A',
+    instruction: '팔을 양옆으로 쭉 펴요!',
+    draw: (svg) => {
+      svg.innerHTML = '<line x1="80" y1="10" x2="80" y2="150" stroke="#26A69A" stroke-width="22" stroke-linecap="round"/><line x1="10" y1="80" x2="150" y2="80" stroke="#26A69A" stroke-width="22" stroke-linecap="round"/>';
+    }
+  }
+];
+
+// ===== STATE =====
+let state = {
+  started: false,
+  currentShapeIdx: 0,
+  targetCount: 5,
+  currentCount: 0,
+  totalCount: 0,
+  successRounds: 0,
+  sessionLog: [],
+  sessionStart: null,
+  timerInterval: null
+};
+
+// ===== INIT =====
+function init() {
+  buildShapeGrid();
+  renderShape(SHAPES[0]);
+  updateCountUI();
+  buildCheckDots();
+}
+
+function buildShapeGrid() {
+  const grid = document.getElementById('shapeGrid');
+  grid.innerHTML = '';
+  SHAPES.forEach((s,i) => {
+    const btn = document.createElement('button');
+    btn.className = 'shape-btn' + (i===0?' active':'');
+    btn.onclick = () => selectShape(i);
+    const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    tmpSvg.setAttribute('viewBox','0 0 160 160');
+    s.draw(tmpSvg);
+    btn.appendChild(tmpSvg);
+    const lbl = document.createElement('span');
+    lbl.textContent = s.name;
+    btn.appendChild(lbl);
+    grid.appendChild(btn);
+  });
+}
+
+function selectShape(idx) {
+  state.currentShapeIdx = idx;
+  document.querySelectorAll('.shape-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  renderShape(SHAPES[idx]);
+  document.getElementById('currentShape').textContent = SHAPES[idx].emoji;
+  if(state.started) {
+    state.currentCount = 0;
+    updateCountUI();
+    buildCheckDots();
+    document.getElementById('statusText').textContent = '따라 해볼까요? 버튼을 눌러요!';
+  }
+}
+
+function renderShape(shape) {
+  const svg = document.getElementById('shapeSvg');
+  shape.draw(svg);
+  document.getElementById('shapeName').textContent = shape.name;
+  document.getElementById('shapeInstruction').textContent = state.started ? shape.instruction : '선생님이 시작 버튼을 눌러요';
+}
+
+// ===== GAME CONTROL =====
+function startGame() {
+  state.started = true;
+  state.currentCount = 0;
+  state.sessionStart = Date.now();
+  startTimer();
+  renderShape(SHAPES[state.currentShapeIdx]);
+  document.getElementById('doneBtn').disabled = false;
+  document.getElementById('currentShape').textContent = SHAPES[state.currentShapeIdx].emoji;
+  updateCountUI();
+  buildCheckDots();
+  document.getElementById('statusText').textContent = '따라 해볼까요? 버튼을 눌러요!';
+}
+
+function doCount() {
+  if(!state.started) return;
+  const target = state.targetCount;
+  state.currentCount++;
+  state.totalCount++;
+  document.getElementById('totalCount').textContent = state.totalCount;
+
+  // Bump animation
+  const numEl = document.getElementById('countNum');
+  numEl.classList.remove('bump');
+  void numEl.offsetWidth;
+  numEl.classList.add('bump');
+
+  updateCountUI();
+  updateCheckDot(state.currentCount - 1, true);
+
+  if(state.currentCount >= target) {
+    // SUCCESS!
+    setTimeout(() => showSuccess(), 200);
+  } else {
+    const remaining = target - state.currentCount;
+    document.getElementById('statusText').textContent = '잘 했어요! 🙌 ' + remaining + '번 더!';
+  }
+}
+
+function showSuccess() {
+  state.successRounds++;
+  document.getElementById('successRounds').textContent = state.successRounds;
+
+  const shape = SHAPES[state.currentShapeIdx];
+  const msg = shape.name + ' 모양 ' + state.targetCount + '번 성공! 🎊';
+  document.getElementById('successMsg').textContent = msg;
+  document.getElementById('successOverlay').classList.add('show');
+  document.getElementById('doneBtn').disabled = true;
+  document.getElementById('statusText').textContent = '🎉 목표 달성!';
+
+  // Log
+  state.sessionLog.push({
+    shape: shape.name,
+    emoji: shape.emoji,
+    count: state.targetCount,
+    time: new Date().toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'})
+  });
+  renderSessionLog();
+  launchConfetti();
+  updateCheckDots_all_done();
+}
+
+function nextShape() {
+  document.getElementById('successOverlay').classList.remove('show');
+  const next = (state.currentShapeIdx + 1) % SHAPES.length;
+  selectShape(next);
+  state.currentCount = 0;
+  updateCountUI();
+  buildCheckDots();
+  document.getElementById('doneBtn').disabled = false;
+  document.getElementById('statusText').textContent = '새 모양! 따라 해볼까요?';
+}
+
+function resetCurrent() {
+  document.getElementById('successOverlay').classList.remove('show');
+  state.currentCount = 0;
+  updateCountUI();
+  buildCheckDots();
+  document.getElementById('doneBtn').disabled = false;
+  document.getElementById('statusText').textContent = '다시 시작! 화이팅!';
+}
+
+function fullReset() {
+  document.getElementById('successOverlay').classList.remove('show');
+  state.started = false;
+  state.currentCount = 0;
+  state.totalCount = 0;
+  state.successRounds = 0;
+  state.sessionLog = [];
+  state.currentShapeIdx = 0;
+  if(state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+  document.getElementById('doneBtn').disabled = true;
+  document.getElementById('countNum').textContent = '0';
+  document.getElementById('totalCount').textContent = '0';
+  document.getElementById('successRounds').textContent = '0';
+  document.getElementById('currentShape').textContent = '—';
+  document.getElementById('sessionTime').textContent = '0:00';
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('statusText').textContent = '선생님이 모양을 선택해요';
+  document.querySelectorAll('.shape-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  state.currentShapeIdx = 0;
+  renderShape(SHAPES[0]);
+  buildCheckDots();
+  renderSessionLog();
+}
+
+// ===== COUNT UI =====
+function updateCountUI() {
+  const t = state.targetCount;
+  const c = state.currentCount;
+  document.getElementById('countNum').textContent = c;
+  document.getElementById('countTarget').textContent = t;
+  document.getElementById('targetVal').textContent = t;
+  const pct = t > 0 ? Math.min(100, (c/t)*100) : 0;
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+function adjustTarget(delta) {
+  state.targetCount = Math.max(1, Math.min(20, state.targetCount + delta));
+  updateCountUI();
+  buildCheckDots();
+}
+
+// ===== CHECK DOTS =====
+function buildCheckDots() {
+  const container = document.getElementById('checkHistory');
+  container.innerHTML = '';
+  for(let i=0; i<state.targetCount; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'check-dot empty';
+    dot.id = 'dot_' + i;
+    dot.textContent = i < state.currentCount ? '✅' : (i+1);
+    if(i < state.currentCount) dot.classList.add('done');
+    container.appendChild(dot);
+  }
+}
+
+function updateCheckDot(idx, done) {
+  const dot = document.getElementById('dot_' + idx);
+  if(dot) {
+    dot.className = 'check-dot' + (done ? ' done' : ' empty');
+    dot.textContent = done ? '✅' : (idx+1);
+  }
+}
+
+function updateCheckDots_all_done() {
+  for(let i=0; i<state.targetCount; i++) {
+    updateCheckDot(i, true);
+  }
+}
+
+// ===== SESSION LOG =====
+function renderSessionLog() {
+  const list = document.getElementById('sessionList');
+  if(state.sessionLog.length === 0) {
+    list.innerHTML = '<div style="color:#666;font-size:0.8rem;text-align:center;padding:10px">아직 기록 없음</div>';
+    return;
+  }
+  list.innerHTML = state.sessionLog.slice().reverse().map((s,i) =>
+    '<div class="session-item">' +
+    '<span class="s-name">' + s.emoji + ' ' + s.shape + '</span>' +
+    '<span class="s-count">' + s.count + '회</span>' +
+    '<span class="s-check">✅ ' + s.time + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+// ===== TIMER =====
+function startTimer() {
+  if(state.timerInterval) clearInterval(state.timerInterval);
+  state.sessionStart = Date.now();
+  state.timerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    document.getElementById('sessionTime').textContent = m + ':' + String(s).padStart(2,'0');
+  }, 1000);
+}
+
+// ===== CONFETTI =====
+function launchConfetti() {
+  const container = document.getElementById('confettiContainer');
+  const colors = ['#6C63FF','#FF6B6B','#FFB300','#00C853','#4FC3F7','#AB47BC'];
+  for(let i=0; i<60; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random()*100 + 'vw';
+    piece.style.top = '-20px';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.width = (8+Math.random()*10) + 'px';
+    piece.style.height = (8+Math.random()*10) + 'px';
+    piece.style.borderRadius = Math.random()>0.5 ? '50%' : '2px';
+    piece.style.animationDuration = (1.5 + Math.random()*2) + 's';
+    piece.style.animationDelay = (Math.random()*0.8) + 's';
+    container.appendChild(piece);
+    setTimeout(() => piece.remove(), 4000);
+  }
+}
+
+// ===== INIT =====
+init();
+</script>
+</body>
+</html>
