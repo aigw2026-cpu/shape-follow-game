@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모양 따라하기 · 특수체육 놀이터 v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: linear-gradient(160deg, #E8F5E9 0%, #F3E5F5 50%, #E3F2FD 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .badge {
+    background: #6C63FF;
+    color: white;
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  h1 {
+    font-size: clamp(2.8rem, 7vw, 5rem);
+    font-weight: 900;
+    color: #2D3436;
+    text-align: center;
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .subtitle {
+    font-size: 1.15rem;
+    color: #636E72;
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+    width: 100%;
+    max-width: 900px;
+    margin-bottom: 40px;
+  }
+  .game-card {
+    background: white;
+    border-radius: 24px;
+    padding: 36px 28px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .game-card.active { border: 3px solid #6C63FF; cursor: pointer; }
+  .game-card.active:hover { transform: translateY(-6px); box-shadow: 0 12px 32px rgba(108,99,255,0.2); }
+  .game-card.soon { opacity: 0.5; }
+  .card-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .card-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; color: #2D3436; }
+  .card-desc { font-size: 0.9rem; color: #636E72; margin-bottom: 20px; line-height: 1.6; }
+  .card-features {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 24px; text-align: left;
+  }
+  .card-feat {
+    font-size: 0.82rem; color: #444;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .start-btn {
+    background: linear-gradient(135deg, #6C63FF, #A855F7);
+    color: white; border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.2s;
+    text-decoration: none;
+    display: block;
+    box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+  }
+  .start-btn:hover { opacity: 0.9; }
+  .soon-badge {
+    background: #DDD;
+    color: #888;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    display: block;
+  }
+  .promise-box {
+    background: white;
+    border-radius: 20px;
+    padding: 28px 32px;
+    max-width: 900px;
+    width: 100%;
+    border: 2px dashed #C5B8FF;
+  }
+  .promise-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #5849C2; }
+  .promise-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .promise-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 0.85rem; color: #444; line-height: 1.5;
+  }
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #B2BEC3;
+  }
+  footer a { color: #6C63FF; text-decoration: none; }
+</style>
+</head>
+<body>
+  <div class="badge">⬡ 특수체육 놀이터 v2</div>
+  <h1>모양<br>따라하기</h1>
+  <p class="subtitle">보고 · 따라 하고 · 카운트로 성공을 확인하는 신체놀이</p>
+
+  <div class="games-grid">
+    <!-- 모양 카운트 게임 -->
+    <div class="game-card active" onclick="location.href='game.html'">
+      <div class="card-icon">⬡</div>
+      <div class="card-title">모양 카운트</div>
+      <div class="card-desc">도형 모양을 보고 몸으로 따라하면<br>카운트가 올라가요!</div>
+      <div class="card-features">
+        <div class="card-feat">🔢 동작 성공 카운트 실시간 표시</div>
+        <div class="card-feat">✅ 목표 횟수 달성 시 성공 체크</div>
+        <div class="card-feat">🎯 5가지 도형 모양 동작</div>
+        <div class="card-feat">⚡ 목표 횟수 선생님이 설정 가능</div>
+      </div>
+      <a href="game.html" class="start-btn">▶ 시작</a>
+    </div>
+
+    <!-- 곧 나와요 1 -->
+    <div class="game-card soon">
+      <div class="card-icon">🎵</div>
+      <div class="card-title">리듬 카운트</div>
+      <div class="card-desc">음악 박자에 맞춰 움직임을<br>반복 카운트해요</div>
+      <div class="card-features">
+        <div class="card-feat">🎶 비트에 맞춰 동작 반복</div>
+        <div class="card-feat">🔢 박자별 성공 카운트</div>
+      </div>
+      <span class="soon-badge">곧 나와요</span>
+    </div>
+
+    <!-- 곧 나와요 2 -->
+    <div class="game-card soon">
+      <div class="card-icon">🤸</div>
+      <div class="card-title">균형 잡기</div>
+      <div class="card-desc">자세를 유지하는 시간을<br>카운트로 측정해요</div>
+      <div class="card-features">
+        <div class="card-feat">⏱️ 자세 유지 시간 측정</div>
+        <div class="card-feat">🏆 최고 기록 갱신 체크</div>
+      </div>
+      <span class="soon-badge">곧 나와요</span>
+    </div>
+  </div>
+
+  <div class="promise-box">
+    <div class="promise-title">🤝 이 놀이터의 약속</div>
+    <div class="promise-grid">
+      <div class="promise-item">🔢 <span>성공한 동작 수를 숫자로 바로 확인해요</span></div>
+      <div class="promise-item">✅ <span>목표 달성 시 축하 효과가 나와요</span></div>
+      <div class="promise-item">👆 <span>버튼은 크게, 조작은 하나만</span></div>
+      <div class="promise-item">🔄 <span>언제든 다시 시작할 수 있어요</span></div>
+      <div class="promise-item">📊 <span>선생님은 대시보드로 확인해요</span></div>
+      <div class="promise-item">🌐 <span>설치 없이 브라우저에서 바로 실행</span></div>
+    </div>
+  </div>
+
+  <footer>
+    <p>특수체육 신체활동 놀이 · 지적장애 학생 접근성 우선 설계</p>
+    <p style="margin-top:6px"><a href="dashboard.html">📊 교사 대시보드</a></p>
+  </footer>
+</body>
+</html>
